@@ -1,0 +1,38 @@
+- name: backs up data volumes
+  hosts: backend_servers
+  sudo: True
+  gather_facts: False
+  tasks:
+    - name: openstack backup | add cloud archive
+      local_action: apt_repository repo='deb http://ubuntu-cloud.archive.canonical.com/ubuntu precise-updates/icehouse main'
+
+    - name: openstack backup | install cinder
+      local_action: apt name=python-cinderclient
+
+    - name: openstack backup | stop mysql
+      service: >
+        name=mysql
+        state=stopped
+
+    - name: openstack backup | sync filesystems
+      shell: /bin/sync
+
+    - name: openstack backup | fetch instance metadata
+      uri:
+        url="http://169.254.169.254/openstack/latest/meta_data.json"
+        return_content=yes
+      register: response
+
+    - name: openstack backup | parse instance uuid
+      set_fact:
+        instance_uuid="{{ (response.content | from_json)['uuid'] }}"
+
+    - name: openstack backup | run backup script
+      local_action: shell ./backup.sh {{ instance_uuid }} {{ KEEP_BACKUPS }}
+      environment: OS_ENV
+
+    - name: openstack backup | start mysql
+      service: >
+        name=mysql
+        state=started
+      ignore_errors: true

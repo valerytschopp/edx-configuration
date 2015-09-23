@@ -1,0 +1,15 @@
+---
+# Example single-node OpenStack deployment.
+
+- name: Configure instance
+  hosts: all
+  sudo: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+  roles:
+    - forum
+    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
+    - { role: "xqueue", update_users: True }
+    - certs
+    - gateone

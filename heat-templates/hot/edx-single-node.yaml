@@ -1,0 +1,143 @@
+heat_template_version: 2013-05-23
+
+description: >
+  HOT template for an edX full stack deployment.
+
+parameters:
+  image:
+    type: string
+    description: Image ID or name
+    default: ubuntu-12.04-server-cloudimg
+  flavor:
+    type: string
+    description: Flavor to use for the server
+    default: m1.large
+  app_port:
+    type: number
+    description: Load balancer port for app servers
+    default: 443
+  public_net_id:
+    type: string
+    description: Public network ID
+  key_name:
+    type: string
+    description: Keypair name
+
+resources:
+  server_security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      description: Neutron security group rules
+      name: server_security_group
+      rules:
+      - remote_mode: 'remote_group_id'
+        remote_group_id:
+        direction: ingress
+      - remote_ip_prefix: 0.0.0.0/0
+        protocol: tcp
+        direction: ingress
+        port_range_min: 22
+        port_range_max: 22
+      - remote_ip_prefix: 0.0.0.0/0
+        protocol: icmp
+      - remote_ip_prefix: 0.0.0.0/0
+        protocol: tcp
+        direction: ingress
+        port_range_min: { get_param: app_port }
+        port_range_max: { get_param: app_port }
+
+  management_net:
+    type: OS::Neutron::Net
+    properties:
+      name: management-net
+
+  management_sub_net:
+    type: OS::Neutron::Subnet
+    properties:
+      name: management-sub-net
+      network_id: { get_resource: management_net }
+      cidr: 192.168.122.0/24
+      gateway_ip: 192.168.122.1
+      enable_dhcp: true
+      allocation_pools: [{"start": "192.168.122.200", "end": "192.168.122.254"}]
+
+  router:
+    type: OS::Neutron::Router
+
+  router_gateway:
+    type: OS::Neutron::RouterGateway
+    properties:
+      router_id: { get_resource: router }
+      network_id: { get_param: public_net_id }
+
+  router_interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router }
+      subnet_id: { get_resource: management_sub_net }
+
+  edx_cloud_config:
+    type: OS::Heat::CloudConfig
+    properties:
+      cloud_config:
+        apt_sources:
+          - source: "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu precise main"
+            keyid: BA9EF27F
+        package_update: true
+        package_upgrade: false
+        packages:
+          - build-essential
+          - software-properties-common
+          - curl
+          - git-core
+          - libxml2-dev
+          - libxslt1-dev
+          - python-pip
+          - python-apt
+          - python-dev
+          - libmysqlclient-dev
+          - libxmlsec1-dev
+          - libfreetype6-dev
+          - swig
+          - gcc-4.8
+          - g++-4.8
+        runcmd:
+          - /usr/bin/pip install --upgrade pip && /usr/local/bin/pip install --upgrade setuptools && /usr/local/bin/pip install --upgrade virtualenv
+          - update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 50
+          - update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 50
+          - git clone -b "hastexo/master/base" https://github.com/hastexo/edx-configuration /var/tmp/edx-configuration
+          - /usr/local/bin/pip install -r /var/tmp/edx-configuration/requirements.txt
+
+
+  edx:
+    type: OS::Nova::Server
+    properties:
+      name: edx
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      key_name: { get_param: key_name }
+      user_data: { get_resource: edx_cloud_config }
+      user_data_format: RAW
+      networks:
+        - port: { get_resource: edx_management_port }
+
+  edx_management_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_resource: management_net }
+      security_groups:
+        - { get_resource: server_security_group }
+      fixed_ips:
+        - ip_address: 192.168.122.100
+
+  edx_floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network_id: { get_param: public_net_id }
+      port_id: { get_resource: edx_management_port }
+      fixed_ip_address: 192.168.122.100
+
+outputs:
+  public_ip:
+    description: Floating IP address in the public network
+    value: { get_attr: [ edx_floating_ip, floating_ip_address ] }

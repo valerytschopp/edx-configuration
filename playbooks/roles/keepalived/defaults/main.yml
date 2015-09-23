@@ -1,0 +1,7 @@
+---
+keepalived_auth_pass: "123456789"
+keepalived_role: "MASTER"
+keepalived_router_id: "1"
+keepalived_shared_iface: "eth0"
+keepalived_shared_ip: "192.168.122.110"
+keepalived_priority: "100"
