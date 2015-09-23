@@ -1,0 +1,32 @@
+---
+# Example single-node OpenStack deployment.
+
+- name: Configure instance
+  hosts: all
+  sudo: True
+  gather_facts: True
+  vars:
+    migrate_db: "yes"
+  roles:
+    - role: nginx
+      nginx_sites:
+      - certs
+      - lms
+      - cms
+      - forum
+      - xqueue
+      nginx_default_sites:
+      - lms
+    - edxlocal
+    - memcache
+    - mongo
+    - { role: 'rabbitmq', rabbitmq_ip: '127.0.0.1' }
+    - { role: 'edxapp', celery_worker: True }
+    - edxapp
+    - oraclejdk
+    - elasticsearch
+    - forum
+    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
+    - { role: "xqueue", update_users: True }
+    - certs
+    - demo
