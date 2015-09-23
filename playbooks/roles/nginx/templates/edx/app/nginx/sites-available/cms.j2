@@ -126,4 +126,5 @@ error_page {{ k }} {{ v }};
   {% include "robots.j2" %}
   {% include "static-files.j2" %}
 
+  include {{ nginx_include_dir }}/cms/*;
 }

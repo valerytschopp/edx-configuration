@@ -1,0 +1,3 @@
+---
+edxapp_user: edxapp
+edxapp_data_dir: "{{ COMMON_DATA_DIR }}/edxapp"

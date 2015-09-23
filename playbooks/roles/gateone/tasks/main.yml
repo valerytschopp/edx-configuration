@@ -1,0 +1,69 @@
+---
+- name: add PPAs
+  apt_repository:
+    repo="{{ item }}"
+  with_items:
+    - "ppa:hastexo/python"
+
+- name: upgrade and install packages
+  apt: >-
+    name="{{ item }}"
+    state=latest
+    update_cache=yes
+  with_items:
+    - gateone
+
+- name: gateone configuration directory
+  file: >
+    path=/etc/gateone/conf.d
+    state=directory
+    owner=root
+    group=root
+
+- name: gateone server configuration
+  template: >
+    src="gateone/conf.d/{{ item }}"
+    dest="/etc/gateone/conf.d/{{ item }}"
+    owner=root
+    group=root
+  with_items:
+    - 10server.conf
+    - 20authentication.conf
+    - 50terminal.conf
+  notify:
+    - restart gateone
+
+- name: create common directories
+  file: >
+    path="{{ item }}"
+    state=directory
+    owner="{{ edxapp_user }}"
+    group="{{ common_web_group }}"
+    mode="0775"
+  with_items:
+    - "{{ edxapp_data_dir }}/terminal_users/ANONYMOUS/.ssh"
+
+- name: terminal user directory ownership
+  shell: >
+    chown -R {{ common_web_user }} {{ edxapp_data_dir }}/terminal_users
+
+- name: terminal user directory permissions
+  shell: >
+    find {{ edxapp_data_dir }}/terminal_users -type d -exec chmod 0775 {} \;
+
+- name: nginx terminal include directory
+  file: >
+    path="{{ COMMON_APP_DIR }}/nginx/include/lms"
+    state=directory
+    owner=root
+    group="{{ common_web_group }}"
+    mode="0775"
+
+- name: nginx terminal include
+  copy: >
+    src=edx/app/nginx/include/lms/terminal
+    dest="{{ COMMON_APP_DIR }}/nginx/include/lms/terminal"
+    owner=root
+    group="{{ common_web_group }}"
+  notify:
+    - restart nginx
