@@ -56,6 +56,7 @@
 
 - name: start everything
   service: name=mysql state=started
+  when: not MARIADB_CLUSTERED|bool
 
 - name: create all databases
   mysql_db:
@@ -64,6 +65,7 @@
     encoding: utf8
   with_items: "{{ MARIADB_DATABASES }}"
   when: MARIADB_CREATE_DBS|bool
+  run_once: true
 
 - name: create all analytics dbs
   mysql_db:
@@ -71,7 +73,44 @@
     state: present
     encoding: utf8
   with_items: "{{ MARIADB_ANALYTICS_DATABASES }}"
-  when: MARIADB_CREATE_DBS|bool and ANALYTICS_API_CONFIG is defined
+  when: MARIADB_CREATE_DBS|bool and ANALYTICS_API_SERVICE_CONFIG is defined
+  run_once: true
+
+- name: create notes db
+  mysql_db:
+    db: "{{ item }}"
+    state: present
+    encoding: utf8
+  with_items: "{{ MARIADB_NOTES_DATABASES }}"
+  when: MARIADB_CREATE_DBS|bool and edx_notes_api_service_config is defined
+  run_once: true
+
+- name: create insights db
+  mysql_db:
+    db: "{{ item }}"
+    state: present
+    encoding: utf8
+  with_items: "{{ MARIADB_INSIGHTS_DATABASES }}"
+  when: MARIADB_CREATE_DBS|bool and INSIGHTS_CONFIG is defined
+  run_once: true
+
+- name: create ecommerce db
+  mysql_db:
+    db: {{ item }}
+    state: present
+    encoding: utf8
+  with_items: "{{ MARIADB_ECOMMERCE_DATABASES }}"
+  when: MARIADB_CREATE_DBS|bool and ECOMMERCE_SERVICE_CONFIG is defined
+  run_once: true
+
+- name: create programs db
+  mysql_db:
+    db: {{ item }}
+    state: present
+    encoding: utf8
+  with_items: "{{ MARIADB_PROGRAMS_DATABASES }}"
+  when: MARIADB_CREATE_DBS|bool and PROGRAMS_SERVICE_CONFIG is defined
+  run_once: true
 
 - name: create all users/privs
   mysql_user:
@@ -82,6 +121,7 @@
     append_privs: yes
   with_items: "{{ MARIADB_USERS }}"
   when: MARIADB_CREATE_DBS|bool
+  run_once: true
 
 - name: create all analytics users/privs
   mysql_user:
@@ -91,4 +131,49 @@
     host: "{{ item.host }}"
     append_privs: yes
   with_items: "{{ MARIADB_ANALYTICS_USERS }}"
-  when: MARIADB_CREATE_DBS|bool and ANALYTICS_API_CONFIG is defined
+  when: MARIADB_CREATE_DBS|bool and ANALYTICS_API_SERVICE_CONFIG is defined
+  run_once: true
+
+- name: create all notes users/privs
+  mysql_user:
+    name: "{{ item.name }}"
+    password: "{{ item.pass }}"
+    priv: "{{ item.priv }}"
+    host: "{{ item.host }}"
+    append_privs: yes
+  with_items: "{{ MARIADB_NOTES_USERS }}"
+  when: MARIADB_CREATE_DBS|bool and edx_notes_api_service_config is defined
+  run_once: true
+
+- name: create all insights users/privs
+  mysql_user:
+    name: "{{ item.name }}"
+    password: "{{ item.pass }}"
+    priv: "{{ item.priv }}"
+    host: "{{ item.host }}"
+    append_privs: yes
+  with_items: "{{ MARIADB_INSIGHTS_USERS }}"
+  when: MARIADB_CREATE_DBS|bool and INSIGHTS_CONFIG is defined
+  run_once: true
+
+- name: create all ecommerce users/privs
+  mysql_user:
+    name: "{{ item.name }}"
+    password: "{{ item.pass }}"
+    priv: "{{ item.priv }}"
+    host: "{{ item.host }}"
+    append_privs=yes
+  with_items: "{{ MARIADB_ECOMMERCE_USERS }}"
+  when: MARIADB_CREATE_DBS|bool and ECOMMERCE_SERVICE_CONFIG is defined
+  run_once: true
+
+- name: create all programs users/privs
+  mysql_user:
+    name: "{{ item.name }}"
+    password: "{{ item.pass }}"
+    priv: "{{ item.priv }}"
+    host: "{{ item.host }}"
+    append_privs: yes
+  with_items: "{{ MARIADB_PROGRAMS_USERS }}"
+  when: MARIADB_CREATE_DBS|bool and PROGRAMS_SERVICE_CONFIG is defined
+  run_once: true

@@ -19,6 +19,7 @@
     dest: "/etc/mysql/conf.d/galera.cnf"
     regexp: "^wsrep_cluster_address=gcomm://{{ hostvars.keys()|sort|join(',') }}$"
     line: "wsrep_cluster_address=gcomm://"
+  run_once: true
   when: ansible_hostname == hostvars[hostvars.keys()[0]].ansible_hostname and not mariadb_bootstrap.stat.exists
 
 - name: fetch debian.cnf file so start-stop will work properly
@@ -27,6 +28,7 @@
     dest: /tmp/debian.cnf
     fail_on_missing: yes
     flat: yes
+  run_once: true
   when: ansible_hostname == hostvars[hostvars.keys()[0]].ansible_hostname and not mariadb_bootstrap.stat.exists
   register: mariadb_new_debian_cnf
 
@@ -37,6 +39,7 @@
 - name: start everything
   service: name=mysql state=started
   when: not mariadb_bootstrap.stat.exists
+  ignore_errors: true
 
 - name: reset galera cluster config since we are bootstrapped
   template:
@@ -53,5 +56,6 @@
 # This is needed for mysql-check in haproxy or other mysql monitor
 # scripts to prevent haproxy checks exceeding `max_connect_errors`.
 - name: create haproxy monitor user
-  command: "mysql -e \"INSERT INTO mysql.user (Host,User) values ('{{ item }}','{{ MARIADB_HAPROXY_USER }}'); FLUSH PRIVILEGES;\""
+  command: "mysql -e \"INSERT IGNORE INTO mysql.user (Host,User) values ('{{ item }}','{{ MARIADB_HAPROXY_USER }}'); FLUSH PRIVILEGES;\""
   with_items: "{{ MARIADB_HAPROXY_HOSTS }}"
+  run_once: true
