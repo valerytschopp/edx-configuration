@@ -81,6 +81,7 @@
   tags:
     - migrate
     - migrate:db
+  run_once: true
 
 - name: run r.js optimizer
   shell: ". {{ insights_nodeenv_bin }}/activate && {{ insights_node_bin }}/r.js -o build.js"

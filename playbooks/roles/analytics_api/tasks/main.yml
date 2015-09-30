@@ -73,6 +73,7 @@
   tags:
     - migrate
     - migrate:db
+  run_once: true
 
 - name: run collectstatic
   shell: "{{ analytics_api_home }}/venvs/{{ analytics_api_service_name }}/bin/python manage.py collectstatic  --noinput"

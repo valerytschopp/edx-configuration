@@ -15,6 +15,7 @@
     chdir: "{{ demo_edxapp_code_dir }}"
   become_user: "{{ common_web_user }}"
   when: demo_checkout.changed
+  run_once: true
 
 - name: create some test users
   shell: "{{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings=aws --service-variant lms manage_user {{ item.username}} {{ item.email }} --initial-password-hash {{ item.hashed_password | quote }}"
@@ -23,6 +24,7 @@
   become_user: "{{ common_web_user }}"
   with_items: "{{ demo_test_users }}"
   when: demo_checkout.changed
+  run_once: true
 
 - name: create staff user
   shell: "{{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings=aws --service-variant lms manage_user staff staff@example.com --initial-password-hash {{ demo_hashed_password | quote }} --staff"
@@ -32,6 +34,7 @@
   when:
     - demo_checkout.changed
     - DEMO_CREATE_STAFF_USER
+  run_once: true
 
 - name: enroll test users in the demo course
   shell: "{{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings=aws --service-variant lms enroll_user_in_course -e {{ item.email }} -c {{ demo_course_id }}"
@@ -50,6 +53,7 @@
     chdir: "{{ demo_edxapp_code_dir }}"
   with_items: "{{ demo_test_users }}"
   when: demo_checkout.changed
+  run_once: true
 
 - name: seed the forums for the demo course
   shell: "{{ demo_edxapp_venv_bin }}/python ./manage.py lms --settings=aws seed_permissions_roles {{ demo_course_id }}"
@@ -57,3 +61,4 @@
     chdir: "{{ demo_edxapp_code_dir }}"
   with_items: "{{ demo_test_users }}"
   when: demo_checkout.changed
+  run_once: true

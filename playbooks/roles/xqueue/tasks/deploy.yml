@@ -97,6 +97,7 @@
   tags:
     - migrate
     - migrate:db
+  run_once: true
 
 - name: Create users
   shell: "SERVICE_VARIANT=xqueue {{ xqueue_venv_bin }}/django-admin.py update_users --settings=xqueue.{{ XQUEUE_SETTINGS }} --pythonpath={{ xqueue_code_dir }}"
@@ -104,6 +105,7 @@
   tags:
     - manage
     - manage:app-users
+  run_once: true
 
   # call supervisorctl update. this reloads
   # the supervisorctl config and restarts
