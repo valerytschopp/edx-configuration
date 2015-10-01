@@ -1,0 +1,12 @@
+---
+git_add_course_edxapp_user: "edxapp"
+git_add_course_edxapp_data_dir: "{{ COMMON_DATA_DIR }}/{{ git_add_course_edxapp_user}}"
+git_add_course_edxapp_course_data_dir: "{{ git_add_course_edxapp_data_dir }}/data"
+git_add_course_edxapp_venv_bin: "{{ COMMON_APP_DIR }}/{{ git_add_course_edxapp_user }}/venvs/{{git_add_course_edxapp_user}}/bin"
+git_add_course_edxapp_code_dir: "{{ COMMON_APP_DIR }}/{{ git_add_course_edxapp_user }}/edx-platform"
+git_add_course_checkout_dir: "{{ git_add_course_edxapp_data_dir }}/course_repos"
+git_add_course_export_dir: "{{ git_add_course_edxapp_data_dir }}/export_course_repos"
+git_add_course_repo: "https://{{ COMMON_GIT_MIRROR }}/edx/edx-demo-course.git"
+git_add_course_checkout_name: "demo"
+git_add_course_checkout_path: "{{ git_add_course_checkout_dir }}/{{ git_add_course_checkout_name }}"
+git_add_course_version: "master"

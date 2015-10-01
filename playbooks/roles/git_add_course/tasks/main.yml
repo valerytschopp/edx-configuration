@@ -1,0 +1,29 @@
+---
+- name: create data directories
+  file: >
+    path="{{ item }}"
+    state=directory
+    owner="{{ git_add_course_edxapp_user }}"
+    group="{{ common_web_group }}"
+    mode="0775"
+  with_items:
+    - "{{ git_add_course_checkout_dir }}"
+    - "{{ git_add_course_export_dir }}"
+
+- name: check out the course
+  git: >
+    dest={{ git_add_course_checkout_path }}
+    repo={{ git_add_course_repo }}
+    version={{ git_add_course_version }}
+    accept_hostkey=yes
+    force=yes
+  sudo_user: "{{ git_add_course_edxapp_user }}"
+  register: git_add_course_checkout
+
+- name: import the course
+  shell: >
+    {{ git_add_course_edxapp_venv_bin }}/python ./manage.py cms --settings=aws import {{ git_add_course_edxapp_course_data_dir }} {{ git_add_course_checkout_path }}
+    chdir={{ git_add_course_edxapp_code_dir }}
+  sudo_user: "{{ git_add_course_edxapp_user }}"
+  when: git_add_course_checkout.changed
+  run_once: true
