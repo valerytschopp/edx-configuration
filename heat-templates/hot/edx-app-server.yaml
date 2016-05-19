@@ -1,12 +1,22 @@
+# This template defines an Open edX application server. It is meant to
+# be invoked from an OS::Heat::ResourceGroup. It creates a Nova
+# instance of the defined flavor, and plugs that instance into an
+# LBaaS pool. The Nova instance is ephemeral and uses no persistent
+# storage.
 heat_template_version: 2013-05-23
 
 description: >
-  HOT template for an edX app server.
+  Open edX application server
 
 parameters:
+  name:
+    type: string
+    description: Name of the server
   image:
     type: string
-    description: Image ID or name
+    description: >
+      Image ID or name.
+      Should be a distribution platform supported for Open edX.
     default: ubuntu-12.04-server-cloudimg
   flavor:
     type: string
@@ -14,15 +24,13 @@ parameters:
     default: m1.large
   pool_id:
     type: string
-    description: Pool to contact
+    description: LBaaS pool to plug the app server into
   protocol_port:
     type: number
-    description: Protocol port
-  user_data:
-    type: string
-    description: Server user_data
+    description: LBaaS service port number
   metadata:
     type: json
+    description: Metadata injected into the virtual machine
   network:
     type: string
     description: Network used by the server
@@ -31,20 +39,82 @@ parameters:
     description: Security group used by the server
   key_name:
     type: string
-    description: keypair for authentication
+    description: >
+      SSH key name for authentication, to be injected into the server
+      for the default user
+  wait_condition_callback:
+    type: string
+    description: Command to execute at end of initialization
 
 resources:
+
+  # app_cloud_config: cloud-init configuration for app servers.
+  #
+  # Installs several packages needed for bootstrapping Open edX.
+  # At the end of the cloud-init sequence, invokes the wait condition
+  # callback to signal to the calling stack that server creation is
+  # complete.
+  app_cloud_config:
+    type: OS::Heat::CloudConfig
+    properties:
+      cloud_config:
+        apt_sources:
+          - source: "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu precise main"
+            keyid: BA9EF27F
+        package_update: true
+        package_upgrade: true
+        packages:
+          # Open edX requires these for installing and combining
+          # Python packages with pip
+          - build-essential
+          - curl
+          - g++-4.8
+          - gcc-4.8
+          - git-core
+          - libfreetype6-dev
+          - libmysqlclient-dev
+          - libxml2-dev
+          - libxmlsec1-dev
+          - libxslt1-dev
+          - python-apt
+          - python-dev
+          - python-pip
+          - software-properties-common
+          - swig
+        runcmd:
+          # Install Open edX prerequisites
+          - >
+            /usr/bin/pip install --upgrade pip
+            && /usr/local/bin/pip install --upgrade setuptools
+            && /usr/local/bin/pip install --upgrade virtualenv
+          - update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 50
+          - update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 50
+          # Let the calling stack know that we're done
+          - { get_param: wait_condition_callback }
+
+  # server: an application server instance
+  #
+  # Creates a new Nova VM with the appropriate flavor and
+  # image. Injects the configured SSH key for the default user,
+  # applies the cloud-init configuration, and plugs the VM into the
+  # correct network using the correct security group.
   server:
     type: OS::Nova::Server
     properties:
+      name: { get_param: name }
       flavor: { get_param: flavor }
       image: { get_param: image }
       key_name: { get_param: key_name }
       metadata: { get_param: metadata }
-      user_data: { get_param: user_data }
+      user_data: { get_resource: app_cloud_config }
       user_data_format: RAW
       networks: [ { network: { get_param: network } } ]
       security_groups: [ { get_param: security_group } ]
+
+  # member: a Neutron LBaaS pool member
+  #
+  # Retrieves the primary IP address from the previously created
+  # server, and plugs it into the load balancer pool.
   member:
     type: OS::Neutron::PoolMember
     properties:
@@ -54,8 +124,8 @@ resources:
 
 outputs:
   server_ip:
-    description: IP Address of the load-balanced server.
+    description: "App server's private IP address"
     value: { get_attr: [ server, first_address ] }
   lb_member:
-    description: LB member details.
+    description: Load balancer member details
     value: { get_attr: [ member, show ] }
