@@ -1,0 +1,175 @@
+# This template defines an Open edX backend server. It is meant to be
+# invoked from an OS::Heat::ResourceGroup. It creates a Nova instance
+# of the defined flavor, and adds two volumes (for MongoDB and
+# MySQL/MariaDB storage).
+heat_template_version: 2013-05-23
+
+description: >
+  Open edX backend server
+
+parameters:
+  name:
+    type: string
+    description: Name of the server
+  image:
+    type: string
+    description: >
+      Image ID or name.
+      Should be a distribution platform supported for Open edX.
+    default: ubuntu-12.04-server-cloudimg
+  flavor:
+    type: string
+    description: Flavor to use for backend servers
+    default: m1.medium
+  metadata:
+    type: json
+    description: Metadata injected into the virtual machine
+  network:
+    type: string
+    description: Network used by the server
+  security_group:
+    type: string
+    description: Security group used by the server
+  key_name:
+    type: string
+    description: >
+      SSH key name for authentication, to be injected into the server
+      for the default user
+  mysql_size:
+    type: string
+    description: Size of MariaDB volume
+    default: 10
+  mongodb_size:
+    type: string
+    description: Size of MongoDB volume
+    default: 10
+  galera_vip:
+    type: string
+    description: Load-balanced virtual IP for MySQL/Galera
+    default: 192.168.122.110
+  wait_condition_callback:
+    type: string
+    description: Command to execute at end of initialization
+
+resources:
+  # backend_cloud_config: cloud-init configuration for backend servers.
+  #
+  # Installs several packages needed for bootstrapping Open edX.
+  # At the end of the cloud-init sequence, invokes the wait condition
+  # callback to signal to the calling stack that server creation is
+  # complete.
+  backend_cloud_config:
+    type: OS::Heat::CloudConfig
+    properties:
+      cloud_config:
+        apt_sources:
+          - source: "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu precise main"
+            keyid: BA9EF27F
+        package_update: true
+        package_upgrade: true
+        packages:
+          # Open edX requires these for installing and combining
+          # Python packages with pip
+          - build-essential
+          - curl
+          - g++-4.8
+          - gcc-4.8
+          - git-core
+          - libfreetype6-dev
+          - libmysqlclient-dev
+          - libxml2-dev
+          - libxmlsec1-dev
+          - libxslt1-dev
+          - python-apt
+          - python-dev
+          - python-pip
+          - software-properties-common
+          - swig
+          - xfsprogs
+        runcmd:
+          # Create volume filesystems and fstab entries
+          # (waiting for volume attachments to be hot-plugged into the
+          # VM)
+          - mkdir -pv /var/lib/mysql /edx/var/mongo/mongodb
+          - echo "/dev/vdb /var/lib/mysql xfs defaults 1 2" >> /etc/fstab
+          - echo "/dev/vdc /edx/var/mongo/mongodb xfs defaults 1 2" >> /etc/fstab
+          - >
+            while [ ! -e /dev/vdb ]; do
+              sleep 5;
+            done
+          - >
+            if ! mount /var/lib/mysql; then
+              mkfs.xfs /dev/vdb && mount /var/lib/mysql;
+            fi
+          - >
+            while [ ! -e /dev/vdc ]; do
+              sleep 5;
+            done
+          - >
+            if ! mount /edx/var/mongo/mongodb; then
+              mkfs.xfs /dev/vdc && mount /edx/var/mongo/mongodb;
+            fi
+          - >
+            /usr/bin/pip install --upgrade pip
+            && /usr/local/bin/pip install --upgrade setuptools
+            && /usr/local/bin/pip install --upgrade virtualenv
+          - update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 50
+          - update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 50
+          - { get_param: wait_condition_callback }
+
+  # server: an backend server instance
+  #
+  # Creates a new Nova VM with the appropriate flavor and
+  # image. Injects the configured SSH key for the default user,
+  # applies the cloud-init configuration, and plugs the VM into the
+  # correct network using the correct security group. Also adds block
+  # device mappings for the MySQL and MongoDB volumes.
+  server:
+    type: OS::Nova::Server
+    properties:
+      name: { get_param: name }
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      key_name: { get_param: key_name }
+      user_data: { get_resource: backend_cloud_config }
+      user_data_format: RAW
+      networks:
+        - port: { get_resource: management_port }
+      block_device_mapping:
+        - "device_name": "vdb"
+          "volume_id": { get_resource: mysql_data }
+          delete_on_termination: false
+        - "device_name": "vdc"
+          "volume_id": { get_resource: mongodb_data }
+          delete_on_termination: false
+
+  # management_port: the server's network port in the management
+  # network
+  #
+  # Applies the correct security group, and allows the Galera virtual
+  # IP to be configured by an application on this port.
+  management_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_param: network }
+      security_groups:
+        - { get_param: security_group }
+      allowed_address_pairs:
+        - ip_address: { get_param: galera_vip }
+
+  # mysql_data: persistent storage volume for MySQL/MariaDB data
+  mysql_data:
+    type: OS::Cinder::Volume
+    properties:
+      size: { get_param: mysql_size }
+
+  # mongodb_data: persistent storage volume for MongoDB data
+  mongodb_data:
+    type: OS::Cinder::Volume
+    properties:
+      size: { get_param: mongodb_size }
+
+outputs:
+  server_ip:
+    description: IP Address of the backend server
+    value: { get_attr: [ server, first_address ] }
