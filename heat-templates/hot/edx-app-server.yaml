@@ -17,7 +17,7 @@ parameters:
     description: >
       Image ID or name.
       Should be a distribution platform supported for Open edX.
-    default: ubuntu-12.04-server-cloudimg
+    default: ubuntu-14.04-server-cloudimg
   flavor:
     type: string
     description: Flavor to use for app servers
@@ -59,36 +59,30 @@ resources:
     properties:
       cloud_config:
         apt_sources:
-          - source: "deb http://ppa.launchpad.net/ubuntu-toolchain-r/test/ubuntu precise main"
-            keyid: BA9EF27F
+          - source: "ppa:git-core/ppa"
+          - source: "deb http://ppa.edx.org trusty main"
+            keyid: 69464050
         package_update: true
         package_upgrade: true
         packages:
           # Open edX requires these for installing and combining
           # Python packages with pip
-          - build-essential
-          - curl
-          - g++-4.8
-          - gcc-4.8
-          - git-core
-          - libfreetype6-dev
-          - libmysqlclient-dev
-          - libxml2-dev
-          - libxmlsec1-dev
-          - libxslt1-dev
-          - python-apt
-          - python-dev
-          - python-pip
           - software-properties-common
-          - swig
+          - build-essential
+          - sudo
+          - git-core
+          - python2.7
+          - python2.7-dev
+          - python-pip
+          - python-apt
+          - python-yaml
+          - python-jinja2
+          - libmysqlclient-dev
         runcmd:
           # Install Open edX prerequisites
-          - >
-            /usr/bin/pip install --upgrade pip
-            && /usr/local/bin/pip install --upgrade setuptools
-            && /usr/local/bin/pip install --upgrade virtualenv
-          - update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 50
-          - update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 50
+          - /usr/bin/pip install --upgrade pip=="7.1.2"
+          - /usr/local/bin/pip install --upgrade setuptools=="18.3.2"
+          - /usr/local/bin/pip install --upgrade virtualenv=="13.1.2"
           # Let the calling stack know that we're done
           - { get_param: wait_condition_callback }
 
