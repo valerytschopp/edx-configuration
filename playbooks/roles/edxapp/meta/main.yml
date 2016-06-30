@@ -5,6 +5,6 @@ dependencies:
   - edxapp_common
   - nltk
   - role: edx_themes
-    theme_users:
-      - "{{ edxapp_user }}"
+    themes_user: "{{ edxapp_user }}"
+    themes_group: "{{ common_web_group }}"
     when: "{{ EDXAPP_ENABLE_COMPREHENSIVE_THEMING }}"
