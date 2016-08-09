@@ -73,7 +73,7 @@ set two mandatory parameters when invoking Heat:
 
 ```
 heat stack-create \
-  -f heat-templates/hot/edx-multi-node.yaml \
+  -f heat-templates/hot/edx-single-node.yaml \
   -P "public_net_id=<uuid>" \
   -P "key_name=<name>" \
   <stack_name>
