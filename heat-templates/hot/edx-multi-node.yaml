@@ -204,9 +204,9 @@ resources:
           - python-jinja2
           - libmysqlclient-dev
         runcmd:
-          - /usr/bin/pip install --upgrade pip=="7.1.2"
-          - /usr/local/bin/pip install --upgrade setuptools=="18.3.2"
-          - /usr/local/bin/pip install --upgrade virtualenv=="13.1.2"
+          - /usr/bin/pip install --upgrade pip=="8.1.2"
+          - /usr/local/bin/pip install --upgrade setuptools=="24.0.3"
+          - /usr/local/bin/pip install --upgrade virtualenv=="15.0.2"
           - >
             git clone -b "hastexo/master/base"
             https://github.com/hastexo/edx-configuration

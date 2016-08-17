@@ -80,9 +80,9 @@ resources:
           - libmysqlclient-dev
         runcmd:
           # Install Open edX prerequisites
-          - /usr/bin/pip install --upgrade pip=="7.1.2"
-          - /usr/local/bin/pip install --upgrade setuptools=="18.3.2"
-          - /usr/local/bin/pip install --upgrade virtualenv=="13.1.2"
+          - /usr/bin/pip install --upgrade pip=="8.1.2"
+          - /usr/local/bin/pip install --upgrade setuptools=="24.0.3"
+          - /usr/local/bin/pip install --upgrade virtualenv=="15.0.2"
           # Let the calling stack know that we're done
           - { get_param: wait_condition_callback }
 
