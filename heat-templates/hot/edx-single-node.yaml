@@ -102,7 +102,10 @@ resources:
           - /usr/bin/pip install --upgrade pip=="8.1.2"
           - /usr/local/bin/pip install --upgrade setuptools=="24.0.3"
           - /usr/local/bin/pip install --upgrade virtualenv=="15.0.2"
-          - git clone -b "hastexo/master/base" https://github.com/hastexo/edx-configuration /var/tmp/edx-configuration
+          - >
+            git clone -b hastexo/master/openstack
+            https://github.com/hastexo/edx-configuration
+            /var/tmp/edx-configuration
           - /usr/local/bin/pip install -r /var/tmp/edx-configuration/requirements.txt
 
 
