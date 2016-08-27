@@ -202,7 +202,7 @@ edX to the cluster:
 cd /var/tmp/edx-configuration/playbooks/openstack/group_vars
 for i in all backend_servers app_servers; do cp $i.example $i; done
 cd ../host_vars
-for i in 111 112 113; do cp 192.168.122.$i.example 192.168.122.$i; done
+for i in `202 203 204; do cp 192.168.122.$i.example 192.168.122.$i; done
 ```
 
 Be sure to run the `inventory.py` dynamic inventory generator, as opposed to
@@ -308,8 +308,8 @@ It is recommended that this playbook be run with:
     --limit <secondary_backend_node>
 
 With the sample multi-node Heat template, it would either be `--limit
-192.168.122.112` or `--limit 192.168.122.113`.  It should not be targetted on
-the primary backend node (`192.168.122.111`), because in order to get a
+192.168.122.203` or `--limit 192.168.122.204`.  It should not be targetted on
+the primary backend node (`192.168.122.202`), because in order to get a
 consistent snapshot, prior to snapshotting it will stop the MariaDB service and
 sync the filesystem.  (MongoDB doesn't require special handling due to the fact
 that its journal is stored in the same volume as the database being
@@ -347,8 +347,8 @@ hands-free way to create one and copy it to all backend nodes would be:
 ```
 KEYFILE=~/.ssh/id_rsa
 ssh-keygen -t rsa -N "" -f $KEYFILE
-for i in 192.168.122.111 192.168.122.112 192.168.122.113; do
-    ssh-keyscan $i >> ~/.ssh/known_hosts
+for i in `seq 2 4`; do
+    ssh-keyscan 192.168.122.20${i} >> ~/.ssh/known_hosts
     ssh-copy-id -i $KEYFILE $i
 done
 ```
