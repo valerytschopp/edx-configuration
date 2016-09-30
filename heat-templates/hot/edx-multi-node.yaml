@@ -8,6 +8,10 @@ parameters:
     type: string
     description: Image ID or name
     default: ubuntu-12.04-server-cloudimg
+  app_image:
+    type: string
+    description: Image ID or name
+    default: ubuntu-12.04-server-cloudimg
   deploy_flavor:
     type: string
     description: Flavor to use for deploy node
@@ -346,7 +350,7 @@ resources:
         type: edx-app-server.yaml
         properties:
           flavor: { get_param: app_flavor }
-          image: { get_param: image }
+          image: { get_param: app_image }
           key_name: { get_param: key_name }
           pool_id: { get_resource: app_server_pool }
           protocol_port: { get_param: app_port }
