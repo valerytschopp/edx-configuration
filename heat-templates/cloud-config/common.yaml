@@ -1,0 +1,23 @@
+#cloud-config
+apt_sources:
+  - source: "ppa:git-core/ppa"
+  - source: "deb http://ppa.edx.org trusty main"
+    keyid: 69464050
+package_update: true
+package_upgrade: true
+packages:
+  - software-properties-common
+  - build-essential
+  - sudo
+  - git-core
+  - python2.7
+  - python2.7-dev
+  - python-pip
+  - python-apt
+  - python-yaml
+  - python-jinja2
+  - libmysqlclient-dev
+runcmd:
+  - /usr/bin/pip install --upgrade pip=="8.1.2"
+  - /usr/local/bin/pip install --upgrade setuptools=="24.0.3"
+  - /usr/local/bin/pip install --upgrade virtualenv=="15.0.2"
