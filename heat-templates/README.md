@@ -97,14 +97,19 @@ Give the node a few minutes to complete its `cloud-init` configuration, which
 will install all ansible prerequisites, including the `edx-configuration`
 repository (check the contents of `/var/log/cloud-init.log` for details).  Once
 `cloud-init` is done, you will be able to start the ansible playbook run from
-within `edx-configuration`.  Before you do so, however, you should enable the
-"localhost" host variables, which will configure this deployment of Open edX:
+within `edx-configuration`.
+
+Before you do so, however, you should enable the "localhost" host variables,
+which will configure this deployment of Open edX.  Due to how Ansible variable
+precedence works, it is recommended that you copy the sample ones to a separate
+directory:
 
 ```
-cd /var/tmp/edx-configuration/playbooks/openstack/host_vars
+cp /var/tmp/edx-configuration/playbooks/openstack /var/tmp/edx-configuration-secrets
+cd /var/tmp/edx-configuration-secrets/host_vars
 cp localhost.example localhost
-cd ../../
-ansible-playbook -i openstack/inventory.ini -c local openstack-single-node.yml
+cd /var/tmp/edx-configuration/playbooks
+ansible-playbook -i ../../edx-configuration-secrets/inventory.ini -c local openstack-single-node.yml
 ```
 
 As mentioned above, this playbook run may take one hour or more.  After it's
@@ -128,7 +133,7 @@ If you want to deploy the hastexo XBlock together with Open edX to your single
 node, go back to your installed node and:
 
 1. Locate the following variables in
-   `/var/tmp/edx-configuration/playbooks/openstack/host_vars/localhost` (which
+   `/var/tmp/edx-configuration-secrets/host_vars/localhost` (which
    you created above) and change them as described:
 
     ```
@@ -138,7 +143,15 @@ node, go back to your installed node and:
       - 'hastexo'
     ```
 
-2. Add the `gateone` role to `openstack-single-node.yml` and rerun that
+2. Check out the `hastexo/integration/base` branch of edx-configuration, which
+   contains the `gateone` role:
+
+    ```
+    $ cd /var/tmp/edx-configuration
+    $ git checkout -b hastexo/integration/base origin/hastexo/integration/base
+    ```
+
+3. Add the `gateone` role to `openstack-single-node.yml` and rerun that
    playbook:
 
     ```
@@ -148,7 +161,7 @@ node, go back to your installed node and:
      - certs
      - demo
      - gateone
-    $ ansible-playbook -i openstack/inventory.ini -c local openstack-single-node.yaml
+    $ ansible-playbook -i ../../edx-configuration-secrets/inventory.ini -c local openstack-single-node.yaml
     ```
 
 
@@ -194,23 +207,29 @@ Give the deploy node a few minutes to complete its `cloud-init` configuration,
 which will install all ansible prerequisites, including the `edx-configuration`
 repository (check the contents of `/var/log/cloud-init.log` for details).  Once
 `cloud-init` is done, you will be able to start the ansible playbook run from
-within `edx-configuration`.  Before you do so, however, you should enable the
-default group and host variables, which will configure this deployment of Open
-edX to the cluster:
+within `edx-configuration`.
+
+Before you do so, however, you should enable the default group and host
+variables, which will configure this deployment of Open edX to the cluster.
+Due to how Ansible variable precedence works, it is recommended that you copy
+the sample ones to a separate directory:
 
 ```
-cd /var/tmp/edx-configuration/playbooks/openstack/group_vars
+cp /var/tmp/edx-configuration/playbooks/openstack /var/tmp/edx-configuration-secrets
+cd /var/tmp/edx-configuration-secrets/group_vars
 for i in all backend_servers app_servers; do cp $i.example $i; done
 cd ../host_vars
 for i in `202 203 204; do cp 192.168.122.$i.example 192.168.122.$i; done
 ```
 
 Be sure to run the `inventory.py` dynamic inventory generator, as opposed to
-the static `intentory.ini`, meant for single node deployments:
+the static `intentory.ini`, meant for single node deployments.  Also, set
+`migrate_db=yes` on this first run, to ensure that the databases and tables are
+properly created.
 
 ```
 cd /var/tmp/edx-configuration/playbooks
-ansible-playbook -i openstack/inventory.py openstack-multi-node.yml
+ansible-playbook -i ../../edx-configuration-secrets/inventory.py openstack-multi-node.yml -e migrate_db=yes
 ```
 
 This playbook run may take one hour or more.  After it's done, log out of the
@@ -247,9 +266,7 @@ database migrations:
 
 ```
 cd /var/tmp/edx-configuration/playbooks
-ansible-playbook -i openstack/inventory.py openstack-multi-node.yml \
-  -e "migrate_db=no" \
-  --limit app_servers
+ansible-playbook -i ../../edx-configuration-secrets/inventory.py openstack-multi-node.yml --limit app_servers
 ```
 
 #### Multiple nodes with the hastexo XBlock
@@ -258,8 +275,8 @@ If you want to deploy the hastexo XBlock together with Open edX to your multi
 node cluster, go back to your deploy node and:
 
 1. Locate the following variables in
-   `/var/tmp/edx-configuration/playbooks/openstack/group_vars/all` (which you
-   created above) and change them as described:
+   `/var/tmp/edx-configuration-secrets/group_vars/all` (which you created
+   above) and change them as described:
 
     ```
     EDXAPP_EXTRA_REQUIREMENTS:
@@ -268,7 +285,15 @@ node cluster, go back to your deploy node and:
       - 'hastexo'
     ```
 
-2. Add the `gateone` role to `openstack-multi-node.yml` under the `app_servers`
+2. Check out the `hastexo/integration/base` branch of edx-configuration, which
+   contains the `gateone` role:
+
+    ```
+    $ cd /var/tmp/edx-configuration
+    $ git checkout -b hastexo/integration/base origin/hastexo/integration/base
+    ```
+
+3. Add the `gateone` role to `openstack-multi-node.yml` under the `app_servers`
    section (the last one) and rerun that playbook, limitting the run
    appropriately:
 
@@ -279,8 +304,7 @@ node cluster, go back to your deploy node and:
     - certs
     - demo
     - gateone
-    $ ansible-playbook -i openstack/inventory.py openstack-multi-node.yml \
-      --limit app_servers
+    $ ansible-playbook -i ../../edx-configuration-secrets/inventory.py openstack-multi-node.yml --limit app_servers
     ```
 
 #### Working with app server master images

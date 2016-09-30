@@ -1,19 +1,25 @@
 ---
-secure_dir: "openstack"
+secure_dir: "../../edx-configuration-secrets"
 local_dir:  '{{ secure_dir }}/local'
 
 edx_platform_repo: "https://{{ COMMON_GIT_MIRROR }}/edx/edx-platform.git"
 edx_platform_version: "master"
-certs_version: "{{ edx_platform_version }}"
-forum_version: "{{ edx_platform_version }}"
-xqueue_version: "{{ edx_platform_version }}"
+CERTS_REPO: "https://{{ COMMON_GIT_MIRROR }}/edx/edx-certificates.git"
+certs_version: "master"
+forum_source_repo: "https://{{ COMMON_GIT_MIRROR }}/edx/cs_comments_service.git"
+forum_version: "master"
+xqueue_source_repo: "https://{{ COMMON_GIT_MIRROR }}/edx/xqueue.git"
+xqueue_version: "master"
+NOTIFIER_SOURCE_REPO: "https://{{ COMMON_GIT_MIRROR }}/edx/notifier.git"
+NOTIFIER_VERSION: "master"
 
 MONGO_CLUSTER_KEY: 'password'
 
 NGINX_ENABLE_SSL: True
 NGINX_REDIRECT_TO_HTTPS: True
-NGINX_SSL_CERTIFICATE: "{{ secure_dir }}/files/ssl-cert.pem"
-NGINX_SSL_KEY: "{{ secure_dir }}/files/ssl-cert.key"
+NGINX_SET_X_FORWARDED_HEADERS: False
+NGINX_SSL_CERTIFICATE: "{{ secure_dir }}/files/wildcard.example.com.pem"
+NGINX_SSL_KEY: "{{ secure_dir }}/files/wildcard.example.com.key"
 keepalived_shared_ip: "192.168.122.110"
 
 openid_workaround: True
@@ -56,17 +62,6 @@ INSIGHTS_DATABASES:
     HOST: '127.0.0.1'
     PORT: '3306'
 
-ECOMMERCE_DATABASES:
-  default:
-    ENGINE: 'django.db.backends.mysql'
-    NAME: '{{ ECOMMERCE_DEFAULT_DB_NAME }}'
-    USER: 'ecomm001'
-    PASSWORD: 'password'
-    HOST: 'localhost'
-    PORT: '3306'
-    ATOMIC_REQUESTS: true
-    CONN_MAX_AGE: 60
-
 PROGRAMS_DATABASES:
   default:
     ENGINE: 'django.db.backends.mysql'
@@ -93,6 +88,7 @@ EDXAPP_SITE_NAME: "lms.example.com"
 EDXAPP_LMS_BASE: "lms.example.com"
 EDXAPP_LMS_BASE_SCHEME: https
 EDXAPP_CMS_BASE: "studio.example.com"
+CMS_HOSTNAME: "{{ EDXAPP_CMS_BASE }}"
 EDXAPP_PLATFORM_NAME: "Open edX"
 EDXAPP_PAYMENT_SUPPORT_EMAIL: "billing@example.com"
 EDXAPP_TECH_SUPPORT_EMAIL: 'technical@example.com'
@@ -107,40 +103,6 @@ EDXAPP_UNIVERSITY_EMAIL: 'university@example.com'
 EDXAPP_PRESS_EMAIL: 'press@example.com'
 EDXAPP_PLATFORM_TWITTER_ACCOUNT: '@YourPlatformTwitterAccount'
 EDXAPP_FOOTER_ORGANIZATION_IMAGE: "themes/edx.org/images/logo.png"
-edxapp_use_custom_theme: true
-edxapp_theme_name: default
-edxapp_theme_source_repo: "https://github.com/Stanford-Online/edx-theme.git"
-edxapp_theme_version: master
 EDXAPP_EXTRA_REQUIREMENTS: []
 EDXAPP_ADDL_INSTALLED_APPS: []
-
-ECOMMERCE_REPOS:
-  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
-    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
-    PATH: "{{ COMMON_GIT_PATH }}"
-    REPO: ecommerce.git
-    VERSION: "{{ ECOMMERCE_VERSION }}"
-    DESTINATION: "{{ ecommerce_code_dir }}"
-ECOMMERCE_SECRET_KEY: 'Your secret key here'
-ECOMMERCE_JWT_SECRET_KEY: 'SET-ME-PLEASE'
-ECOMMERCE_JWT_ISSUERS:
-  - '{{ ECOMMERCE_LMS_URL_ROOT }}/oauth2'
-  - 'ecommerce_worker'
-ECOMMERCE_EDX_API_KEY: "{{ EDXAPP_EDX_API_KEY }}"
-ECOMMERCE_VERSION: "{{ edx_platform_version }}"
-ECOMMERCE_HOSTNAME: '~^((stage|prod)-)?ecommerce.*'
-ECOMMERCE_ECOMMERCE_URL_ROOT: 'https://ecommerce.example.com'
-ECOMMERCE_LMS_URL_ROOT: "{{ EDXAPP_LMS_BASE_SCHEME }}://{{ EDXAPP_LMS_BASE }}"
-ECOMMERCE_PLATFORM_NAME: "Open edX"
-ECOMMERCE_NGINX_PORT: 80
-ECOMMERCE_SSL_NGINX_PORT: 443
-ECOMMERCE_OSCAR_FROM_EMAIL: 'oscar@example.com'
-ECOMMERCE_PAYPAL_MODE: 'sandbox'
-ECOMMERCE_PAYPAL_CLIENT_ID: 'SET-ME-PLEASE'
-ECOMMERCE_PAYPAL_CLIENT_SECRET: 'SET-ME-PLEASE'
-ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_KEY : 'ecommerce-key'
-ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET : 'ecommerce-secret'
-ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
-EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "{{ ECOMMERCE_ECOMMERCE_URL_ROOT }}"
-EDXAPP_ECOMMERCE_API_URL: "{{ ECOMMERCE_ECOMMERCE_URL_ROOT }}/api/v2"
-EDXAPP_ECOMMERCE_API_SIGNING_KEY: "{{ ECOMMERCE_JWT_SECRET_KEY }}"
+EDXAPP_ANALYTICS_DASHBOARD_URL: ""
