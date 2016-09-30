@@ -14,7 +14,7 @@ except:
 class OpenStackEdxInventory(object):
 
     metadata_url = "http://169.254.169.254/openstack/latest/meta_data.json"
-    groups = ["app_servers", "backend_servers"]
+    groups = ["app_servers", "backend_servers", "app_master"]
 
     def __init__(self):
         pass

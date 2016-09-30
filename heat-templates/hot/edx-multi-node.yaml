@@ -15,6 +15,12 @@ parameters:
       Image ID or name.
       Should be a distribution platform supported for Open edX.
     default: ubuntu-14.04-server-cloudimg
+  app_image:
+    type: string
+    description: >
+      Image ID or name.
+      Should be a distribution platform supported for Open edX.
+    default: ubuntu-14.04-server-cloudimg
   deploy_flavor:
     type: string
     description: Flavor to use for deploy node
@@ -61,8 +67,8 @@ parameters:
     default: 900
 
 resources:
-  # deploy_done: Wait condition to signal that the deploy node has
-  # completed its installation.
+  # deploy_done: Wait condition to signal that the deploy node has completed its
+  # installation.
   deploy_done:
     type: OS::Heat::WaitCondition
     properties:
@@ -175,6 +181,25 @@ resources:
       router_id: { get_resource: router }
       subnet_id: { get_resource: management_sub_net }
 
+  # common_config_part: cloud-init configuration common to all nodes
+  common_config_part:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config: { get_file: ../cloud-config/common.yaml }
+
+  deploy_config_part:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config: { get_file: ../cloud-config/deploy.yaml }
+
+  deploy_done_config_part:
+    type: "OS::Heat::CloudConfig"
+    properties:
+      cloud_config:
+        merge_how: 'dict(recurse_array,no_replace)+list(append)'
+        runcmd:
+          - { get_attr: ['deploy_done_handle', 'curl_cli'] }
+
   # deploy_cloud_config: cloud-init configuration for deploy node
   #
   # Installs several packages needed for bootstrapping Open edX.
@@ -182,37 +207,12 @@ resources:
   # callback to signal to the calling stack that server creation is
   # complete.
   deploy_cloud_config:
-    type: OS::Heat::CloudConfig
+    type: OS::Heat::MultipartMime
     properties:
-      cloud_config:
-        apt_sources:
-          - source: "ppa:git-core/ppa"
-          - source: "deb http://ppa.edx.org trusty main"
-            keyid: 69464050
-        package_update: true
-        package_upgrade: true
-        packages:
-          - software-properties-common
-          - build-essential
-          - sudo
-          - git-core
-          - python2.7
-          - python2.7-dev
-          - python-pip
-          - python-apt
-          - python-yaml
-          - python-jinja2
-          - libmysqlclient-dev
-        runcmd:
-          - /usr/bin/pip install --upgrade pip=="8.1.2"
-          - /usr/local/bin/pip install --upgrade setuptools=="24.0.3"
-          - /usr/local/bin/pip install --upgrade virtualenv=="15.0.2"
-          - >
-            git clone -b hastexo/master/openstack
-            https://github.com/hastexo/edx-configuration
-            /var/tmp/edx-configuration
-          - /usr/local/bin/pip install -r /var/tmp/edx-configuration/requirements.txt
-          - { get_attr: ['deploy_done_handle', 'curl_cli'] }
+      parts:
+        - config: {get_resource: common_config_part}
+        - config: {get_resource: deploy_config_part}
+        - config: {get_resource: deploy_done_config_part}
 
   # deploy: the deploy node instance
   #
@@ -297,7 +297,7 @@ resources:
         properties:
           name: app%index%
           flavor: { get_param: app_flavor }
-          image: { get_param: image }
+          image: { get_param: app_image }
           key_name: { get_param: key_name }
           pool_id: { get_resource: app_server_pool }
           protocol_port: { get_param: app_port }

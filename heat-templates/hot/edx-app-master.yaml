@@ -1,12 +1,11 @@
-# This template defines an Open edX application server. It is meant to
-# be invoked from an OS::Heat::ResourceGroup. It creates a Nova
-# instance of the defined flavor, and plugs that instance into an
-# LBaaS pool. The Nova instance is ephemeral and uses no persistent
-# storage.
+# This template defines an Open edX master application server.  It creates a
+# Nova instance of the defined flavor.  It is ephemeral and uses no persistent
+# storage.  It is meant to be created on demand, in the same stack where it is
+# to be configured.
 heat_template_version: 2013-05-23
 
 description: >
-  Open edX application server
+  Open edX application master server
 
 parameters:
   name:
@@ -22,15 +21,6 @@ parameters:
     type: string
     description: Flavor to use for app servers
     default: m1.large
-  pool_id:
-    type: string
-    description: LBaaS pool to plug the app server into
-  protocol_port:
-    type: number
-    description: LBaaS service port number
-  metadata:
-    type: json
-    description: Metadata injected into the virtual machine
   network:
     type: string
     description: Network used by the server
@@ -42,11 +32,24 @@ parameters:
     description: >
       SSH key name for authentication, to be injected into the server
       for the default user
-  wait_condition_callback:
-    type: string
-    description: Command to execute at end of initialization
+  timeout:
+    type: number
+    description: Stack creation timeout (seconds)
+    default: 900
 
 resources:
+  # all_done: Wait condition to signal that the server has completed its
+  # installation.
+  server_done:
+    type: OS::Heat::WaitCondition
+    properties:
+      handle: {get_resource: server_done_handle}
+      count: 1
+      timeout: {get_param: timeout}
+
+  server_done_handle:
+    type: OS::Heat::WaitConditionHandle
+
   # common_config_part: cloud-init configuration common to all nodes
   common_config_part:
     type: OS::Heat::SoftwareConfig
@@ -55,13 +58,12 @@ resources:
 
   # server_config_part: cloud-init configuration specific to this server
   server_config_part:
-    type: OS::Heat::CloudConfig
+    type: "OS::Heat::CloudConfig"
     properties:
       cloud_config:
         merge_how: 'dict(recurse_array,no_replace)+list(append)'
         runcmd:
-          # Let the calling stack know that we're done
-          - { get_param: wait_condition_callback }
+          - { get_attr: ['server_done_handle', 'curl_cli'] }
 
   # server_cloud_config: complete cloud-init configuration for this servers.
   #
@@ -89,27 +91,12 @@ resources:
       flavor: { get_param: flavor }
       image: { get_param: image }
       key_name: { get_param: key_name }
-      metadata: { get_param: metadata }
       user_data: { get_resource: server_cloud_config }
       user_data_format: RAW
       networks: [ { network: { get_param: network } } ]
       security_groups: [ { get_param: security_group } ]
 
-  # member: a Neutron LBaaS pool member
-  #
-  # Retrieves the primary IP address from the previously created
-  # server, and plugs it into the load balancer pool.
-  member:
-    type: OS::Neutron::PoolMember
-    properties:
-      pool_id: { get_param: pool_id }
-      address: { get_attr: [ server, first_address ] }
-      protocol_port: { get_param: protocol_port }
-
 outputs:
   server_ip:
     description: "Server's private IP address"
     value: { get_attr: [ server, first_address ] }
-  lb_member:
-    description: Load balancer member details
-    value: { get_attr: [ member, show ] }

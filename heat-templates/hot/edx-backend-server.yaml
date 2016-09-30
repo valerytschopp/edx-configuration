@@ -52,36 +52,19 @@ parameters:
     description: Command to execute at end of initialization
 
 resources:
-  # backend_cloud_config: cloud-init configuration for backend servers.
-  #
-  # Installs several packages needed for bootstrapping Open edX.
-  # At the end of the cloud-init sequence, invokes the wait condition
-  # callback to signal to the calling stack that server creation is
-  # complete.
-  backend_cloud_config:
+  # common_config_part: cloud-init configuration common to all nodes
+  common_config_part:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config: { get_file: ../cloud-config/common.yaml }
+
+  # server_config_part: cloud-init configuration specific to the backends
+  server_config_part:
     type: OS::Heat::CloudConfig
     properties:
       cloud_config:
-        apt_sources:
-          - source: "ppa:git-core/ppa"
-          - source: "deb http://ppa.edx.org trusty main"
-            keyid: 69464050
-        package_update: true
-        package_upgrade: true
+        merge_how: 'dict(recurse_array,no_replace)+list(append)'
         packages:
-          # Open edX requires these for installing and combining
-          # Python packages with pip
-          - software-properties-common
-          - build-essential
-          - sudo
-          - git-core
-          - python2.7
-          - python2.7-dev
-          - python-pip
-          - python-apt
-          - python-yaml
-          - python-jinja2
-          - libmysqlclient-dev
           - xfsprogs
         runcmd:
           # Create volume filesystems and fstab entries
@@ -107,12 +90,21 @@ resources:
               mkfs.xfs /dev/vdc && mount /edx/var/mongo/mongodb;
             fi
           - >
-          # Install Open edX prerequisites
-          - /usr/bin/pip install --upgrade pip=="8.1.2"
-          - /usr/local/bin/pip install --upgrade setuptools=="24.0.3"
-          - /usr/local/bin/pip install --upgrade virtualenv=="15.0.2"
           # Let the calling stack know that we're done
           - { get_param: wait_condition_callback }
+
+  # server_cloud_config: complete cloud-init configuration for this server.
+  #
+  # Installs several packages needed for bootstrapping Open edX.
+  # At the end of the cloud-init sequence, invokes the wait condition
+  # callback to signal to the calling stack that server creation is
+  # complete.
+  server_cloud_config:
+    type: OS::Heat::MultipartMime
+    properties:
+      parts:
+        - config: {get_resource: common_config_part}
+        - config: {get_resource: server_config_part}
 
   # server: an backend server instance
   #
@@ -128,7 +120,7 @@ resources:
       image: { get_param: image }
       flavor: { get_param: flavor }
       key_name: { get_param: key_name }
-      user_data: { get_resource: backend_cloud_config }
+      user_data: { get_resource: server_cloud_config }
       user_data_format: RAW
       networks:
         - port: { get_resource: management_port }

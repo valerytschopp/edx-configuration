@@ -76,38 +76,22 @@ resources:
       router_id: { get_resource: router }
       subnet_id: { get_resource: management_sub_net }
 
-  edx_cloud_config:
-    type: OS::Heat::CloudConfig
+  common_config_part:
+    type: OS::Heat::SoftwareConfig
     properties:
-      cloud_config:
-        apt_sources:
-          - source: "ppa:git-core/ppa"
-          - source: "deb http://ppa.edx.org trusty main"
-            keyid: 69464050
-        package_update: true
-        package_upgrade: true
-        packages:
-          - software-properties-common
-          - build-essential
-          - sudo
-          - git-core
-          - python2.7
-          - python2.7-dev
-          - python-pip
-          - python-apt
-          - python-yaml
-          - python-jinja2
-          - libmysqlclient-dev
-        runcmd:
-          - /usr/bin/pip install --upgrade pip=="8.1.2"
-          - /usr/local/bin/pip install --upgrade setuptools=="24.0.3"
-          - /usr/local/bin/pip install --upgrade virtualenv=="15.0.2"
-          - >
-            git clone -b hastexo/master/openstack
-            https://github.com/hastexo/edx-configuration
-            /var/tmp/edx-configuration
-          - /usr/local/bin/pip install -r /var/tmp/edx-configuration/requirements.txt
+      config: { get_file: ../cloud-config/common.yaml }
 
+  edx_config_part:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config: { get_file: ../cloud-config/deploy.yaml }
+
+  edx_cloud_config:
+    type: OS::Heat::MultipartMime
+    properties:
+      parts:
+        - config: {get_resource: common_config_part}
+        - config: {get_resource: edx_config_part}
 
   edx:
     type: OS::Nova::Server
