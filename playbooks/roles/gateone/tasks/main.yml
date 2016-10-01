@@ -58,6 +58,7 @@
     owner=root
     group="{{ common_web_group }}"
     mode="0775"
+  when: not devstack
 
 - name: nginx terminal include
   copy: >
@@ -67,3 +68,4 @@
     group="{{ common_web_group }}"
   notify:
     - restart nginx
+  when: not devstack
