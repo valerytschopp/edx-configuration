@@ -41,15 +41,15 @@
     group="{{ common_web_group }}"
     mode="0775"
   with_items:
-    - "{{ edxapp_data_dir }}/terminal_users/ANONYMOUS/.ssh"
+    - "{{ gateone_user_dir }}/ANONYMOUS/.ssh"
 
 - name: terminal user directory ownership
   shell: >
-    chown -R {{ common_web_user }} {{ edxapp_data_dir }}/terminal_users
+    chown -R {{ common_web_user }} {{ gateone_user_dir }}
 
 - name: terminal user directory permissions
   shell: >
-    find {{ edxapp_data_dir }}/terminal_users -type d -exec chmod 0775 {} \;
+    find {{ gateone_user_dir }} -type d -exec chmod 0775 {} \;
 
 - name: nginx terminal include directory
   file: >
