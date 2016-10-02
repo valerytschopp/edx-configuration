@@ -20,6 +20,15 @@
     - { role: 'mariadb', MARIADB_CREATE_DBS: 'yes' }
     - postfix
 
+# RabbitMQ needs to be built serially
+- name: Configure RabbitMQ
+  hosts: backend_servers
+  sudo: True
+  gather_facts: True
+  serial: 1
+  roles:
+    - rabbitmq
+
 - name: Configure app servers
   hosts: app_servers
   sudo: True
@@ -30,7 +39,6 @@
     - name: Install memcached
       apt: pkg=memcached state=present
   roles:
-    - { role: 'rabbitmq', rabbitmq_ip: '127.0.0.1' }
     - supervisor
     - role: nginx
       nginx_sites:
