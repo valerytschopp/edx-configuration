@@ -12,6 +12,5 @@ EDX_NOTES_API_ELASTICSEARCH_URL: http://{{ groups['backend_servers'][0] }}:9200
 FORUM_SINATRA_ENV: "production"
 FORUM_RACK_ENV: "production"
 
-EDXAPP_RABBIT_HOSTNAME: "localhost"
-XQUEUE_RABBITMQ_HOSTNAME: "localhost"
-RABBITMQ_CLUSTERED: no
+EDXAPP_RABBIT_HOSTNAME: "{{ keepalived_shared_ip }}"
+XQUEUE_RABBITMQ_HOSTNAME: "{{ keepalived_shared_ip }}"

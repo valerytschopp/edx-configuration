@@ -12,3 +12,8 @@ OS_ENV:
   OS_PASSWORD: password
 keepalived_auth_pass: "123456789"
 keepalived_shared_iface: "eth0"
+RABBITMQ_CLUSTERED_HOSTS:
+  - "rabbit@backend0"
+  - "rabbit@backend1"
+  - "rabbit@backend2"
+rabbitmq_ip: ""
