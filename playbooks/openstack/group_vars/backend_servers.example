@@ -17,3 +17,4 @@ RABBITMQ_CLUSTERED_HOSTS:
   - "rabbit@backend1"
   - "rabbit@backend2"
 rabbitmq_ip: ""
+MEMCACHE_LOCALHOST_ONLY: false

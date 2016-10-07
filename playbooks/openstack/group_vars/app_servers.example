@@ -14,3 +14,8 @@ FORUM_RACK_ENV: "production"
 
 EDXAPP_RABBIT_HOSTNAME: "{{ keepalived_shared_ip }}"
 XQUEUE_RABBITMQ_HOSTNAME: "{{ keepalived_shared_ip }}"
+
+EDXAPP_MEMCACHE:
+  - "{{ groups['backend_servers'][0] }}:11211"
+  - "{{ groups['backend_servers'][1] }}:11211"
+  - "{{ groups['backend_servers'][2] }}:11211"
