@@ -33,8 +33,6 @@
   hosts: app_servers
   become: True
   gather_facts: True
-  vars:
-    migrate_db: "yes"
   pre_tasks:
     - name: Install memcached
       apt: pkg=memcached state=present
