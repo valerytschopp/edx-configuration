@@ -3,14 +3,14 @@
 
 - name: Configure keepalived
   hosts: backend_servers
-  sudo: True
+  become: True
   gather_facts: True
   roles:
     - keepalived
 
 - name: Configure backend servers
   hosts: backend_servers
-  sudo: True
+  become: True
   gather_facts: True
   roles:
     - common
@@ -22,7 +22,7 @@
 # RabbitMQ needs to be built serially
 - name: Configure RabbitMQ
   hosts: backend_servers
-  sudo: True
+  become: True
   gather_facts: True
   serial: 1
   roles:
@@ -30,7 +30,7 @@
 
 - name: Configure app servers
   hosts: app_servers
-  sudo: True
+  become: True
   gather_facts: True
   pre_tasks:
     - name: Install memcached
