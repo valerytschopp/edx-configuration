@@ -19,6 +19,7 @@
     - elasticsearch
     - { role: 'mariadb', MARIADB_CREATE_DBS: 'yes' }
     - postfix
+    - memcache
 
 # RabbitMQ needs to be built serially
 - name: Configure RabbitMQ
@@ -33,9 +34,6 @@
   hosts: app_servers
   become: True
   gather_facts: True
-  pre_tasks:
-    - name: Install memcached
-      apt: pkg=memcached state=present
   roles:
     - supervisor
     - role: nginx
