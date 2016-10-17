@@ -55,8 +55,8 @@ MARIADB_USERS:
     priv: "{{ EDXAPP_MYSQL_DB_NAME|default('edxapp') }}.*:ALL"
     host: "{{ MARIADB_HOST_PRIV }}"
 
-  - name: "{{ EDXAPP_MYSQL_CSMH_USER|default('edxapp001') }}"
-    pass: "{{ EDXAPP_MYSQL_CSMH_PASSWORD|default('password') }}"
+  - name: "{{ EDXAPP_MYSQL_USER|default('edxapp001') }}"
+    pass: "{{ EDXAPP_MYSQL_PASSWORD|default('password') }}"
     priv: "{{ EDXAPP_MYSQL_CSMH_DB_NAME|default('edxapp_csmh') }}.*:ALL"
     host: "{{ MARIADB_HOST_PRIV }}"
 
