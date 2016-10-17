@@ -53,6 +53,11 @@ resources:
     properties:
       config: { get_file: ../cloud-config/common.yaml }
 
+  hosts_config_part:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config: { get_file: ../cloud-config/hosts.yaml }
+
   # server_config_part: cloud-init configuration specific to this server
   server_config_part:
     type: OS::Heat::CloudConfig
@@ -74,6 +79,7 @@ resources:
     properties:
       parts:
         - config: {get_resource: common_config_part}
+        - config: {get_resource: hosts_config_part}
         - config: {get_resource: server_config_part}
 
   # server: an application server instance

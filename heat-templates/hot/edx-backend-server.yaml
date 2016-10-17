@@ -11,6 +11,9 @@ parameters:
   name:
     type: string
     description: Name of the server
+  ip:
+    type: string
+    description: IP used by the server
   image:
     type: string
     description: >
@@ -58,6 +61,11 @@ resources:
     properties:
       config: { get_file: ../cloud-config/common.yaml }
 
+  hosts_config_part:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config: { get_file: ../cloud-config/hosts.yaml }
+
   # server_config_part: cloud-init configuration specific to the backends
   server_config_part:
     type: OS::Heat::CloudConfig
@@ -104,6 +112,7 @@ resources:
     properties:
       parts:
         - config: {get_resource: common_config_part}
+        - config: {get_resource: hosts_config_part}
         - config: {get_resource: server_config_part}
 
   # server: an backend server instance
@@ -145,6 +154,8 @@ resources:
         - { get_param: security_group }
       allowed_address_pairs:
         - ip_address: { get_param: galera_vip }
+      fixed_ips:
+        - ip_address: { get_param: ip }
 
   # mysql_data: persistent storage volume for MySQL/MariaDB data
   mysql_data:

@@ -1,0 +1,20 @@
+#cloud-config
+merge_how: dict(recurse_array,no_replace)+list(append)
+write_files:
+  - path: /etc/hosts
+    permissions: '0644'
+    content: |
+      127.0.0.1 localhost
+
+      # The following lines are desirable for IPv6 capable hosts
+      ::1       ip6-localhost ip6-loopback
+      fe00::0   ip6-localnet
+      ff00::0   ip6-mcastprefix
+      ff02::1   ip6-allnodes
+      ff02::2   ip6-allrouters
+
+      192.168.122.100 deploy
+      192.168.122.110 backend
+      192.168.122.111 backend0
+      192.168.122.112 backend1
+      192.168.122.113 backend2
