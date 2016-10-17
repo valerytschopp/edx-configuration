@@ -187,6 +187,11 @@ resources:
     properties:
       config: { get_file: ../cloud-config/common.yaml }
 
+  hosts_config_part:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config: { get_file: ../cloud-config/hosts.yaml }
+
   deploy_config_part:
     type: OS::Heat::SoftwareConfig
     properties:
@@ -211,6 +216,7 @@ resources:
     properties:
       parts:
         - config: {get_resource: common_config_part}
+        - config: {get_resource: hosts_config_part}
         - config: {get_resource: deploy_config_part}
         - config: {get_resource: deploy_done_config_part}
 
@@ -234,7 +240,10 @@ resources:
       networks:
         - port: { get_resource: deploy_management_port }
       metadata:
-        backend_servers: { get_attr: [ backend_servers, server_ip ] }
+        backend_servers:
+          - { get_attr: [ backend0, server_ip ] }
+          - { get_attr: [ backend1, server_ip ] }
+          - { get_attr: [ backend2, server_ip ] }
         app_servers: { get_attr: [ app_servers, server_ip ] }
 
   # deploy_management_port: the deploy node's network port in the
@@ -263,26 +272,54 @@ resources:
   # backend_servers: creates a backend cluster of 3 nodes
   #
   # Backend servers are named backend0, backend1, backend2.
-  backend_servers:
-    type: OS::Heat::ResourceGroup
-    depends_on: management_sub_net
+  backend0:
+    type: edx-backend-server.yaml
     properties:
-      count: 3
-      resource_def:
-        type: edx-backend-server.yaml
-        properties:
-          name: backend%index%
-          flavor: { get_param: backend_flavor }
-          image: { get_param: image }
-          key_name: { get_param: key_name }
-          metadata: { "metering.stack": { get_param: "OS::stack_id" } }
-          network: { get_resource: management_net }
-          security_group: { get_resource: server_security_group }
-          mysql_size: { get_param: mysql_size }
-          mongodb_size: { get_param: mongodb_size }
-          galera_vip: { get_param: galera_vip }
-          wait_condition_callback: { get_attr: ['backend_done_handle', 'curl_cli'] }
-      
+      name: backend0
+      ip: 192.168.122.111
+      flavor: { get_param: backend_flavor }
+      image: { get_param: image }
+      key_name: { get_param: key_name }
+      metadata: { "metering.stack": { get_param: "OS::stack_id" } }
+      network: { get_resource: management_net }
+      security_group: { get_resource: server_security_group }
+      mysql_size: { get_param: mysql_size }
+      mongodb_size: { get_param: mongodb_size }
+      galera_vip: { get_param: galera_vip }
+      wait_condition_callback: { get_attr: ['backend_done_handle', 'curl_cli'] }
+
+  backend1:
+    type: edx-backend-server.yaml
+    properties:
+      name: backend1
+      ip: 192.168.122.112
+      flavor: { get_param: backend_flavor }
+      image: { get_param: image }
+      key_name: { get_param: key_name }
+      metadata: { "metering.stack": { get_param: "OS::stack_id" } }
+      network: { get_resource: management_net }
+      security_group: { get_resource: server_security_group }
+      mysql_size: { get_param: mysql_size }
+      mongodb_size: { get_param: mongodb_size }
+      galera_vip: { get_param: galera_vip }
+      wait_condition_callback: { get_attr: ['backend_done_handle', 'curl_cli'] }
+
+  backend2:
+    type: edx-backend-server.yaml
+    properties:
+      name: backend2
+      ip: 192.168.122.113
+      flavor: { get_param: backend_flavor }
+      image: { get_param: image }
+      key_name: { get_param: key_name }
+      metadata: { "metering.stack": { get_param: "OS::stack_id" } }
+      network: { get_resource: management_net }
+      security_group: { get_resource: server_security_group }
+      mysql_size: { get_param: mysql_size }
+      mongodb_size: { get_param: mongodb_size }
+      galera_vip: { get_param: galera_vip }
+      wait_condition_callback: { get_attr: ['backend_done_handle', 'curl_cli'] }
+
   # app_servers: creates an application server cluster of a
   # configurable size
   #
