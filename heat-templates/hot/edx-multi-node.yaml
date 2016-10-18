@@ -358,12 +358,10 @@ resources:
   app_server_pool:
     type: OS::Neutron::Pool
     properties:
-      lb_method: SOURCE_IP
+      lb_method: LEAST_CONNECTIONS
       protocol: TCP
       vip:
         protocol_port: { get_param: app_port }
-        session_persistence:
-          type: SOURCE_IP
       monitors: [ { get_resource: app_server_monitor } ]
       subnet_id: { get_resource: management_sub_net }
 
