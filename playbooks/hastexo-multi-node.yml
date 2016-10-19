@@ -31,7 +31,7 @@
     - rabbitmq
 
 - name: Configure app servers
-  hosts: app_servers
+  hosts: app_servers:app_master
   become: True
   gather_facts: True
   roles:
@@ -53,3 +53,10 @@
     - certs
     - postfix
     - gateone
+
+- name: Stop all services on app master
+  hosts: app_master
+  become: True
+  gather_facts: True
+  roles:
+    - stop_all_edx_services
