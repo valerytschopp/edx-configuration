@@ -106,21 +106,6 @@ resources:
   backend_done_handle:
     type: OS::Heat::WaitConditionHandle
 
-  # app_done: Wait condition to signal that an app server has
-  # completed its installation.
-  #
-  # We run on app_count app server nodes, hence, we wait for this
-  # signal to be received app_count times.
-  app_done:
-    type: OS::Heat::WaitCondition
-    properties:
-      handle: {get_resource: app_done_handle}
-      count: { get_param: app_count }
-      timeout: {get_param: timeout}
-
-  app_done_handle:
-    type: OS::Heat::WaitConditionHandle
-
   # server_security_group: Neutron security group allowing inbound
   # access on selected ports
   #
@@ -370,7 +355,6 @@ resources:
           metadata: { "metering.stack": { get_param: "OS::stack_id" } }
           network: { get_resource: management_net }
           security_group: { get_resource: server_security_group }
-          wait_condition_callback: { get_attr: ['app_done_handle', 'curl_cli'] }
 
   # app_server_monitor: Neutron LBaaS monitor
   app_server_monitor:

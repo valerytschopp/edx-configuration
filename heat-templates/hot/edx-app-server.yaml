@@ -3,7 +3,7 @@
 # instance of the defined flavor, and plugs that instance into an
 # LBaaS pool. The Nova instance is ephemeral and uses no persistent
 # storage.
-heat_template_version: 2013-05-23
+heat_template_version: 2015-04-30
 
 description: >
   Open edX application server
@@ -42,11 +42,24 @@ parameters:
     description: >
       SSH key name for authentication, to be injected into the server
       for the default user
-  wait_condition_callback:
-    type: string
-    description: Command to execute at end of initialization
+  timeout:
+    type: number
+    description: Stack creation timeout (seconds)
+    default: 900
 
 resources:
+  # server_done: Wait condition to signal that the server has completed its
+  # installation.
+  server_done:
+    type: OS::Heat::WaitCondition
+    properties:
+      handle: {get_resource: server_done_handle}
+      count: 1
+      timeout: {get_param: timeout}
+
+  server_done_handle:
+    type: OS::Heat::WaitConditionHandle
+
   # common_config_part: cloud-init configuration common to all nodes
   common_config_part:
     type: OS::Heat::SoftwareConfig
@@ -65,8 +78,7 @@ resources:
       cloud_config:
         merge_how: 'dict(recurse_array,no_replace)+list(append)'
         runcmd:
-          # Let the calling stack know that we're done
-          - { get_param: wait_condition_callback }
+          - { get_attr: ['server_done_handle', 'curl_cli'] }
 
   # server_cloud_config: complete cloud-init configuration for this servers.
   #
@@ -113,6 +125,8 @@ resources:
       protocol_port: { get_param: protocol_port }
 
 outputs:
+  OS::stack_id:
+    value: { get_resource: server }
   server_ip:
     description: "Server's private IP address"
     value: { get_attr: [ server, first_address ] }
