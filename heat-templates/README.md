@@ -217,9 +217,30 @@ the sample ones to a separate directory:
 ```
 cp /var/tmp/edx-configuration/playbooks/openstack /var/tmp/edx-configuration-secrets
 cd /var/tmp/edx-configuration-secrets/group_vars
-for i in all backend_servers app_servers; do cp $i.example $i; done
+for i in *.example; do cp $i ${i%.example}; done
 cd ../host_vars
-for i in 111 112 113; do cp 192.168.122.$i.example 192.168.122.$i; done
+for i in *.example; do cp $i ${i%.example}; done
+```
+
+Now, generate a passphrase-less keypair, copy it over to the other nodes, and
+add the nodes to the host list so one doesn't have to manually confirm them
+later.  Note that this will only work if authentication forwarding is properly
+configured, and if you're logged in as the default user, "ubuntu".
+
+```sh
+# Create a new key pair
+export KEYFILE=~/.ssh/id_rsa
+ssh-keygen -t rsa -N "" -f $KEYFILE
+
+# Disable strict host key checking
+echo "StrictHostKeyChecking no" > ~/.ssh/config
+
+# Deploy it
+ips=$(ansible -i ~/edx-configuration-secrets/openstack.py all --list-hosts)
+for ip in $ips; do
+    ssh-keyscan $ip >> ~/.ssh/known_hosts
+    ssh-copy-id -i $KEYFILE $ip
+done
 ```
 
 Be sure to run the `inventory.py` dynamic inventory generator, as opposed to
@@ -455,8 +476,8 @@ You can find out what are the existing backend servers by running:
 /var/tmp/edx-configuration-secrets/openstack.py --list
 ```
 
-Now, run the `edx-multi-node.yaml` playbook using this inventory file on the
-`app_master` group.  You may also want to run database migrations at this
+Now, run the `openstack-multi-node.yaml` playbook using this inventory file on
+the `app_master` group.  You may also want to run database migrations at this
 point:
 
 ```
@@ -494,6 +515,146 @@ openstack stack update \
     --existing \
     --parameter app_image=<image_name> \
     <existing_stack_name>
+```
+
+## Firing up an analytics stack
+
+Create the stack using the existing stack's management network and security
+group:
+
+```
+openstack stack create \
+    --template heat-templates/hot/edx-analytics-server.yaml \
+    --parameter name=<server_name> \
+    --parameter image=<image> \
+    --parameter flavor=<flavor> \
+    --parameter key_name=<key_name> \
+    --parameter network=<existing_network> \
+    --parameter security_group=<existing_security_group> \
+    --parameter public_net_id=<uuid> \
+    <analytics_stack_name>
+```
+
+The analytics server's default internal IP is `192.168.122.120`.  Deploy the
+stack's SSH key pair to it from the deploy node:
+
+```
+ip=192.168.122.120
+ssh-keyscan $ip >> ~/.ssh/known_hosts
+ssh-copy-id -i ~/.ssh/id_rsa $ip
+scp ~/.ssh/id_rsa* $ip:.ssh/
+```
+
+You'll create a static inventory file, `analytics.ini`, containing the
+existing `backend_servers`, and only the analytics server under
+`analytics_servers`:
+
+```
+vim /var/tmp/edx-configuration-secrets/analytics.ini
+...
+[analytics_servers]
+192.168.122.120
+
+[backend_servers]
+192.168.122.111
+192.168.122.112
+192.168.122.113
+```
+
+You can find out what are the existing backend servers by running:
+
+```
+/var/tmp/edx-configuration-secrets/openstack.py --list
+```
+
+Now, run the `openstack-analytics.yaml` playbook using this inventory file on
+the `analytics_servers` group.
+
+```
+cd /var/tmp/edx-configuration/playbooks
+ansible-playbook \
+    -i ../../edx-configuration-secrets/analytics.ini \
+    -e migrate_db=yes \
+    openstack-analytics.yml
+```
+
+SSH into the the analytics node for the following:
+
+```
+ssh 192.168.122.120
+```
+
+Set up the pipeline in a new virtual env:
+
+```
+# Create a new virtualenv for the pipeline, and activate it
+virtualenv pipeline
+. pipeline/bin/activate
+
+# Clone the repository and bootstrap it
+git clone https://github.com/edx/edx-analytics-pipeline
+cd edx-analytics-pipeline
+make bootstrap
+```
+
+Copy the sample `devstack.cfg` configuration file and change it as follows:
+
+```
+sudo cp ~/edx-analytics-pipeline/config/devstack.cfg /edx/etc/edx-analytics-pipeline/override.cfg
+sudo vim /edx/etc/edx-analytics-pipeline/override.cfg
+...
+[elasticsearch]
+host = http://192.168.122.111:9201/
+```
+
+Test it with a simple task that counts daily events.  This will run through the
+installation procedure and may take a while.  On subsequent invocations,
+however, it will be possible to skip it.
+
+```
+remote-task \
+    --host localhost \
+    --repo https://github.com/edx/edx-analytics-pipeline \
+    --user ubuntu \
+    --override-config /edx/etc/edx-analytics-pipeline/override.cfg \
+    --remote-name analyticstack \
+    --wait TotalEventsDailyTask \
+    --interval 2016 \
+    --output-root hdfs://localhost:9000/output/ \
+    --local-scheduler
+```
+
+Now import enrollments, skipping the installation:
+
+```
+remote-task \
+    --host localhost \
+    --user ubuntu \
+    --override-config /edx/etc/edx-analytics-pipeline/override.cfg \
+    --remote-name analyticstack \
+    --skip-setup \
+    --wait CourseEnrollmentEventsTask \
+    --interval 2016 \
+    --local-scheduler
+```
+
+Finally, log in to Insights, making sure you're logged into the LMS with a
+staff account.  If your OAUTH variables were set correctly when deploying up
+the LMS, the `edx-multi-node.yaml` playbook should have already created the
+correct Insights token on it.
+
+If there's a 500 error on the /courses page, you're likely hitting a migration
+bug where some tables weren't created properly.  To fix this, run the
+following:
+
+```bash
+sudo -Hu insights bash
+cd
+. venvs/insights/bin/activate
+. insights_env
+cd edx_analytics_dashboard
+./manage.py migrate --run-syncdb --settings=analytics_dashboard.settings.production
+exit
 ```
 
 
@@ -549,15 +710,22 @@ backup playbook.
 
 You will also need to create an SSH key without a passphrase for the ubuntu
 user on the deploy node, and distribute it to the other nodes.   This is so
-that Ansible can connect to the backend node without human intervention.  A
-hands-free way to create one and copy it to all backend nodes, and one app
-node, would be:
+that Ansible can connect to the backend node without human intervention.  (You
+can skip this step if you've already done it as part of initial stack
+deployment.)
 
-```
-KEYFILE=~/.ssh/id_rsa
+```sh
+# Create a new key pair
+export KEYFILE=~/.ssh/id_rsa
 ssh-keygen -t rsa -N "" -f $KEYFILE
-for i in 111 112 113 202; do
-    ssh-keyscan 192.168.122.${i} >> ~/.ssh/known_hosts
-    ssh-copy-id -i $KEYFILE $i
+
+# Disable strict host key checking
+echo "StrictHostKeyChecking no" > ~/.ssh/config
+
+# Deploy it
+ips=$(~/edx-configuration/playbooks/openstack/inventory.py --list | grep 192 | tr -d ' ",')
+for ip in $ips; do
+    ssh-keyscan $ip >> ~/.ssh/known_hosts
+    ssh-copy-id -i $KEYFILE $ip
 done
 ```

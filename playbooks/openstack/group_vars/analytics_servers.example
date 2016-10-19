@@ -1,0 +1,71 @@
+---
+# Analytics data API
+ANALYTICS_API_VERSION: "master"
+ANALYTICS_API_REPOS:
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: edx-analytics-data-api.git
+    VERSION: "{{ ANALYTICS_API_VERSION }}"
+    DESTINATION: "{{ analytics_api_code_dir }}"
+    SSH_KEY: "{{ ANALYTICS_API_GIT_IDENTITY }}"
+ANALYTICS_API_USERS:
+  "insights": "insights-api-token"
+ANALYTICS_API_SECRET_KEY: 'Your secret key here'
+ANALYTICS_API_TIME_ZONE: 'UTC'
+ANALYTICS_API_LANGUAGE_CODE: 'en-us'
+ANALYTICS_API_EMAIL_HOST: 'localhost'
+ANALYTICS_API_EMAIL_HOST_USER: 'mail_user'
+ANALYTICS_API_EMAIL_HOST_PASSWORD: 'mail_password'
+ANALYTICS_API_EMAIL_PORT: 587
+ANALYTICS_API_AUTH_TOKEN: 'put-your-api-token-here'
+ANALYTICS_API_ELASTICSEARCH_LEARNERS_HOST: "{{ groups['backend_servers'][0] }}"
+
+# Nginx
+NGINX_ENABLE_SSL: True
+NGINX_REDIRECT_TO_HTTPS: True
+NGINX_SET_X_FORWARDED_HEADERS: False
+NGINX_SSL_CERTIFICATE: "{{ secure_dir }}/files/wildcard.example.com.pem"
+NGINX_SSL_KEY: "{{ secure_dir }}/files/wildcard.example.com.key"
+
+# Insights
+INSIGHTS_VERSION: "master"
+INSIGHTS_REPOS:
+  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
+    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
+    PATH: "{{ COMMON_GIT_PATH }}"
+    REPO: edx-analytics-dashboard.git
+    VERSION: "{{ INSIGHTS_VERSION }}"
+    DESTINATION: "{{ insights_code_dir }}"
+    SSH_KEY: "{{ INSIGHTS_GIT_IDENTITY }}"
+INSIGHTS_PLATFORM_NAME: 'edX'
+INSIGHTS_APPLICATION_NAME: 'Insights'
+INSIGHTS_SEGMENT_IO_KEY: 'YOUR_KEY'
+INSIGHTS_NGINX_PORT: "80"
+INSIGHTS_NGINX_SSL_PORT: "443"
+INSIGHTS_LMS_BASE: '{{ EDXAPP_LMS_ROOT_URL }}'
+INSIGHTS_CMS_BASE: '{{ EDXAPP_LMS_BASE_SCHEME }}://{{ EDXAPP_CMS_BASE }}'
+INSIGHTS_MKTG_BASE: 'http://example.com'
+INSIGHTS_LMS_COURSE_SHORTCUT_BASE_URL: '{{ INSIGHTS_LMS_BASE }}/courses'
+INSIGHTS_CMS_COURSE_SHORTCUT_BASE_URL: '{{ INSIGHTS_CMS_BASE }}/course'
+INSIGHTS_MEMCACHE:
+  - "{{ groups['backend_servers'][0] }}:11211"
+  - "{{ groups['backend_servers'][1] }}:11211"
+  - "{{ groups['backend_servers'][2] }}:11211"
+INSIGHTS_OAUTH2_URL_ROOT: '{{ INSIGHTS_LMS_BASE }}/oauth2'
+INSIGHTS_OAUTH2_APP_USERNAME: staff
+INSIGHTS_OAUTH2_APP_COMPLETE_URL: '{{ INSIGHTS_BASE_URL }}/complete/edx-oidc/'
+INSIGHTS_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
+INSIGHTS_SECRET_KEY: 'YOUR_SECRET_KEY_HERE'
+# Must match the Insights API user token above
+INSIGHTS_DATA_API_AUTH_TOKEN: 'insights-api-token'
+ANALYTICS_API_ENDPOINT: 'http://127.0.0.1:8100/api/v0'
+INSIGHTS_FEEDBACK_EMAIL: 'dashboard@example.com'
+INSIGHTS_SUPPORT_EMAIL: 'support@example.com'
+INSIGHTS_PRIVACY_POLICY_URL: '{{ INSIGHTS_MKTG_BASE }}/privacy-policy'
+INSIGHTS_TERMS_OF_SERVICE_URL: '{{ INSIGHTS_MKTG_BASE }}/terms-service'
+INSIGHTS_EMAIL_HOST: 'smtp.example.com'
+INSIGHTS_EMAIL_HOST_PASSWORD: "mail_password"
+INSIGHTS_EMAIL_HOST_USER: "mail_user"
+INSIGHTS_EMAIL_PORT: 587
+INSIGHTS_ENABLE_AUTO_AUTH: false

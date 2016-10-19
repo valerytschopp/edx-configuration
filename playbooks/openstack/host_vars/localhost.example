@@ -1,33 +1,101 @@
 ---
-secure_dir: "openstack"
-local_dir:  '{{ secure_dir }}/local'
+# Secure variable store
+secure_dir: "../../edx-configuration-secrets"
 
+# Repos
 edx_platform_repo: "https://{{ COMMON_GIT_MIRROR }}/edx/edx-platform.git"
 edx_platform_version: "master"
-certs_version: "{{ edx_platform_version }}"
-forum_version: "{{ edx_platform_version }}"
-xqueue_version: "{{ edx_platform_version }}"
+CERTS_REPO: "https://{{ COMMON_GIT_MIRROR }}/edx/edx-certificates.git"
+certs_version: "master"
+forum_source_repo: "https://{{ COMMON_GIT_MIRROR }}/edx/cs_comments_service.git"
+forum_version: "master"
+xqueue_source_repo: "https://{{ COMMON_GIT_MIRROR }}/edx/xqueue.git"
+xqueue_version: "master"
+NOTIFIER_SOURCE_REPO: "https://{{ COMMON_GIT_MIRROR }}/edx/notifier.git"
+NOTIFIER_VERSION: "master"
 
-NGINX_ENABLE_SSL: True
-NGINX_REDIRECT_TO_HTTPS: True
-NGINX_SSL_CERTIFICATE: "{{ secure_dir }}/files/wildcard.example.com.pem"
-NGINX_SSL_KEY: "{{ secure_dir }}/files/wildcard.example.com.key"
-
-openid_workaround: True
+# Common
+COMMON_ENVIRONMENT: 'default_env'
+COMMON_DEPLOYMENT: 'default_deployment'
 COMMON_ENABLE_DATADOG: False
 COMMON_ENABLE_SPLUNKFORWARDER: False
-ENABLE_LEGACY_ORA: !!null
 COMMON_SECURITY_UPDATES: False
 SECURITY_UNATTENDED_UPGRADES: False
 SECURITY_UPDATE_ALL_PACKAGES: False
 
-COMMON_MYSQL_ADMIN_PASS: "password"
-COMMON_MYSQL_READ_ONLY_PASS: "password"
-COMMON_MYSQL_MIGRATE_PASS: "password"
-EDXAPP_MYSQL_PASSWORD: "password"
-XQUEUE_MYSQL_PASSWORD: "password"
-EDX_NOTES_API_MYSQL_DB_PASS: "password"
+# Log sync
+COMMON_OBJECT_STORE_LOG_SYNC: False
+COMMON_OBJECT_STORE_LOG_SYNC_BUCKET: "edx-{{ COMMON_ENVIRONMENT }}-{{ COMMON_DEPLOYMENT }}"
+COMMON_OBJECT_STORE_LOG_SYNC_PREFIX: "logs/tracking/"
+COMMON_OBJECT_STORE_LOG_SYNC_SCRIPT: "{{ COMMON_BIN_DIR }}/send-logs-to-object-store"
+SWIFT_LOG_SYNC_IDENTITY_API_VERSION: ''
+SWIFT_LOG_SYNC_USERNAME: ''
+SWIFT_LOG_SYNC_PASSWORD: ''
+SWIFT_LOG_SYNC_USER_ID: ''
+SWIFT_LOG_SYNC_USER_DOMAIN_ID: ''
+SWIFT_LOG_SYNC_USER_DOMAIN_NAME: ''
+SWIFT_LOG_SYNC_TENANT_ID: ''
+SWIFT_LOG_SYNC_TENANT_NAME: ''
+SWIFT_LOG_SYNC_PROJECT_ID: ''
+SWIFT_LOG_SYNC_PROJECT_NAME: ''
+SWIFT_LOG_SYNC_PROJECT_DOMAIN_ID: ''
+SWIFT_LOG_SYNC_PROJECT_DOMAIN_NAME: ''
+SWIFT_LOG_SYNC_AUTH_URL: ''
+SWIFT_LOG_SYNC_AUTH_TOKEN: ''
+SWIFT_LOG_SYNC_STORAGE_URL: ''
+SWIFT_LOG_SYNC_REGION_NAME: ''
 
+# Databases
+COMMON_MYSQL_READ_ONLY_USER: 'read_only'
+COMMON_MYSQL_READ_ONLY_PASS: 'password'
+COMMON_MYSQL_ADMIN_USER: 'admin'
+COMMON_MYSQL_ADMIN_PASS: 'password'
+COMMON_MYSQL_MIGRATE_USER: 'migrate'
+COMMON_MYSQL_MIGRATE_PASS: 'password'
+EDXAPP_MYSQL_DB_NAME: 'edxapp'
+EDXAPP_MYSQL_USER: 'edxapp001'
+EDXAPP_MYSQL_USER_ADMIN: 'root'
+EDXAPP_MYSQL_PASSWORD: 'password'
+EDXAPP_MYSQL_PASSWORD_READ_ONLY: 'password'
+EDXAPP_MYSQL_PASSWORD_ADMIN: 'password'
+EDXAPP_MYSQL_CSMH_DB_NAME: "edxapp_csmh"
+EDXAPP_MYSQL_CSMH_USER: "{{ EDXAPP_MYSQL_USER }}"
+EDXAPP_MYSQL_CSMH_PASSWORD: "{{ EDXAPP_MYSQL_PASSWORD }}"
+EDXAPP_MYSQL_CSMH_HOST: "{{ EDXAPP_MYSQL_HOST }}"
+EDXAPP_MYSQL_CSMH_PORT: "{{ EDXAPP_MYSQL_PORT }}"
+EDXAPP_MYSQL_HOST: 'localhost'
+EDXAPP_MYSQL_PORT: '3306'
+XQUEUE_MYSQL_DB_NAME: 'xqueue'
+XQUEUE_MYSQL_USER: 'xqueue001'
+XQUEUE_MYSQL_PASSWORD: 'password'
+XQUEUE_MYSQL_HOST: 'localhost'
+XQUEUE_MYSQL_PORT: '3306'
+EDX_NOTES_API_MYSQL_DB_NAME: edx_notes_api
+EDX_NOTES_API_MYSQL_DB_USER: notes001
+EDX_NOTES_API_MYSQL_DB_PASS: secret
+EDX_NOTES_API_MYSQL_HOST: localhost
+CREDENTIALS_DEFAULT_DB_NAME: 'credentials'
+CREDENTIALS_MYSQL_HOST: 'localhost'
+CREDENTIALS_MYSQL_USER: 'credentials001'
+CREDENTIALS_MYSQL_PASSWORD: 'SET-ME-TO-A-UNIQUE-LONG-RANDOM-STRING'
+DISCOVERY_DEFAULT_DB_NAME: 'discovery'
+DISCOVERY_MYSQL: 'localhost'
+DISCOVERY_MYSQL_USER: 'discov001'
+DISCOVERY_MYSQL_PASSWORD: 'password'
+ECOMMERCE_DEFAULT_DB_NAME: 'ecommerce'
+ECOMMERCE_DATABASES:
+  # rw user
+  default:
+    ENGINE: 'django.db.backends.mysql'
+    NAME: '{{ ECOMMERCE_DEFAULT_DB_NAME }}'
+    USER: 'ecomm001'
+    PASSWORD: 'password'
+    HOST: 'localhost'
+    PORT: '3306'
+    ATOMIC_REQUESTS: true
+    CONN_MAX_AGE: 60
+ANALYTICS_API_DEFAULT_DB_NAME: 'analytics-api'
+ANALYTICS_API_REPORTS_DB_NAME: 'reports'
 ANALYTICS_API_DATABASES:
   default:
     ENGINE: 'django.db.backends.mysql'
@@ -43,7 +111,18 @@ ANALYTICS_API_DATABASES:
     PASSWORD: 'password'
     HOST: 'localhost'
     PORT: '3306'
-
+ANALYTICS_PIPELINE_OUTPUT_DATABASE_NAME: "{{ ANALYTICS_API_REPORTS_DB_NAME }}"
+ANALYTICS_PIPELINE_OUTPUT_DATABASE:
+  username: 'pipeline001'
+  password: 'password'
+  host: localhost
+  port: 3306
+ANALYTICS_PIPELINE_INPUT_DATABASE:
+  username: "{{ COMMON_MYSQL_READ_ONLY_USER }}"
+  password: "{{ COMMON_MYSQL_READ_ONLY_PASS }}"
+  host: localhost
+  port: 3306
+INSIGHTS_DATABASE_NAME: 'dashboard'
 INSIGHTS_DATABASES:
   default:
     ENGINE: 'django.db.backends.mysql'
@@ -52,18 +131,7 @@ INSIGHTS_DATABASES:
     PASSWORD: 'secret'
     HOST: '127.0.0.1'
     PORT: '3306'
-
-ECOMMERCE_DATABASES:
-  default:
-    ENGINE: 'django.db.backends.mysql'
-    NAME: '{{ ECOMMERCE_DEFAULT_DB_NAME }}'
-    USER: 'ecomm001'
-    PASSWORD: 'password'
-    HOST: 'localhost'
-    PORT: '3306'
-    ATOMIC_REQUESTS: true
-    CONN_MAX_AGE: 60
-
+PROGRAMS_DEFAULT_DB_NAME: 'programs'
 PROGRAMS_DATABASES:
   default:
     ENGINE: 'django.db.backends.mysql'
@@ -74,22 +142,37 @@ PROGRAMS_DATABASES:
     PORT: '3306'
     ATOMIC_REQUESTS: true
     CONN_MAX_AGE: 60
+HIVE_METASTORE_DATABASE_NAME: edx_hive_metastore
+HIVE_METASTORE_DATABASE:
+  user: edx_hive
+  password: edx
+  name: "{{ HIVE_METASTORE_DATABASE_NAME }}"
+  host: 127.0.0.1
+  port: 3306
 
+# Nginx
+NGINX_ENABLE_SSL: True
+NGINX_REDIRECT_TO_HTTPS: True
+NGINX_SET_X_FORWARDED_HEADERS: False
+NGINX_SSL_CERTIFICATE: "{{ secure_dir }}/files/wildcard.example.com.pem"
+NGINX_SSL_KEY: "{{ secure_dir }}/files/wildcard.example.com.key"
+
+# Edxapp
 EDXAPP_EDX_API_KEY: "PUT_YOUR_API_KEY_HERE"
 EDXAPP_EDXAPP_SECRET_KEY: "DUMMY KEY CHANGE BEFORE GOING TO PRODUCTION"
-EDXAPP_ENABLE_THIRD_PARTY_AUTH: True
 EDXAPP_LMS_NGINX_PORT: 80
 EDXAPP_LMS_SSL_NGINX_PORT: 443
 EDXAPP_CMS_NGINX_PORT: 80
 EDXAPP_CMS_SSL_NGINX_PORT: 443
 EDXAPP_ALLOW_ALL_ADVANCED_COMPONENTS: True
 EDXAPP_ENABLE_SYSADMIN_DASHBOARD: True
-EDXAPP_ENABLE_OAUTH2_PROVIDER: True
-EDXAPP_OAUTH_ENFORCE_SECURE: False
+EDXAPP_COURSE_CATALOG_VISIBILITY_PERMISSION: "see_in_catalog"
+EDXAPP_COURSE_ABOUT_VISIBILITY_PERMISSION: "see_about_page"
 EDXAPP_SITE_NAME: "lms.example.com"
 EDXAPP_LMS_BASE: "lms.example.com"
 EDXAPP_LMS_BASE_SCHEME: https
 EDXAPP_CMS_BASE: "studio.example.com"
+CMS_HOSTNAME: "{{ EDXAPP_CMS_BASE }}"
 EDXAPP_PLATFORM_NAME: "Open edX"
 EDXAPP_PAYMENT_SUPPORT_EMAIL: "billing@example.com"
 EDXAPP_TECH_SUPPORT_EMAIL: 'technical@example.com'
@@ -104,40 +187,102 @@ EDXAPP_UNIVERSITY_EMAIL: 'university@example.com'
 EDXAPP_PRESS_EMAIL: 'press@example.com'
 EDXAPP_PLATFORM_TWITTER_ACCOUNT: '@YourPlatformTwitterAccount'
 EDXAPP_FOOTER_ORGANIZATION_IMAGE: "themes/edx.org/images/logo.png"
-edxapp_use_custom_theme: true
-edxapp_theme_name: default
-edxapp_theme_source_repo: "https://github.com/Stanford-Online/edx-theme.git"
-edxapp_theme_version: master
-EDXAPP_EXTRA_REQUIREMENTS: []
-EDXAPP_ADDL_INSTALLED_APPS: []
+EDXAPP_REGISTRATION_EXTRA_FIELDS:
+  level_of_education: "hidden"
+  gender: "hidden"
+  year_of_birth: "hidden"
+  goals: "hidden"
+  honor_code: "optional"
+  city: "hidden"
+  country: "hidden"
+  mailing_address: "hidden"
+EDXAPP_CELERY_WORKERS:
+  - queue: low
+    service_variant: cms
+    concurrency: 1
+    monitor: True
+  - queue: default
+    service_variant: cms
+    concurrency: 1
+    monitor: True
+  - queue: high
+    service_variant: cms
+    concurrency: 1
+    monitor: True
+  - queue: low
+    service_variant: lms
+    concurrency: 1
+    monitor: True
+  - queue: default
+    service_variant: lms
+    concurrency: 1
+    monitor: True
+  - queue: high
+    service_variant: lms
+    concurrency: 1
+    monitor: True
+  - queue: high_mem
+    service_variant: lms
+    concurrency: 1
+    monitor: False
+    max_tasks_per_child: 1
+EDXAPP_ANALYTICS_DASHBOARD_URL: ""
 
-ECOMMERCE_REPOS:
-  - PROTOCOL: "{{ COMMON_GIT_PROTOCOL }}"
-    DOMAIN: "{{ COMMON_GIT_MIRROR }}"
-    PATH: "{{ COMMON_GIT_PATH }}"
-    REPO: ecommerce.git
-    VERSION: "{{ ECOMMERCE_VERSION }}"
-    DESTINATION: "{{ ecommerce_code_dir }}"
-ECOMMERCE_SECRET_KEY: 'Your secret key here'
-ECOMMERCE_JWT_SECRET_KEY: 'SET-ME-PLEASE'
-ECOMMERCE_JWT_ISSUERS:
-  - '{{ ECOMMERCE_LMS_URL_ROOT }}/oauth2'
-  - 'ecommerce_worker'
-ECOMMERCE_EDX_API_KEY: "{{ EDXAPP_EDX_API_KEY }}"
-ECOMMERCE_VERSION: "{{ edx_platform_version }}"
-ECOMMERCE_HOSTNAME: '~^((stage|prod)-)?ecommerce.*'
-ECOMMERCE_ECOMMERCE_URL_ROOT: 'https://ecommerce.example.com'
-ECOMMERCE_LMS_URL_ROOT: "{{ EDXAPP_LMS_BASE_SCHEME }}://{{ EDXAPP_LMS_BASE }}"
-ECOMMERCE_PLATFORM_NAME: "Open edX"
-ECOMMERCE_NGINX_PORT: 80
-ECOMMERCE_SSL_NGINX_PORT: 443
-ECOMMERCE_OSCAR_FROM_EMAIL: 'oscar@example.com'
-ECOMMERCE_PAYPAL_MODE: 'sandbox'
-ECOMMERCE_PAYPAL_CLIENT_ID: 'SET-ME-PLEASE'
-ECOMMERCE_PAYPAL_CLIENT_SECRET: 'SET-ME-PLEASE'
-ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_KEY : 'ecommerce-key'
-ECOMMERCE_SOCIAL_AUTH_EDX_OIDC_SECRET : 'ecommerce-secret'
-ECOMMERCE_SOCIAL_AUTH_REDIRECT_IS_HTTPS: false
-EDXAPP_ECOMMERCE_PUBLIC_URL_ROOT: "{{ ECOMMERCE_ECOMMERCE_URL_ROOT }}"
-EDXAPP_ECOMMERCE_API_URL: "{{ ECOMMERCE_ECOMMERCE_URL_ROOT }}/api/v2"
-EDXAPP_ECOMMERCE_API_SIGNING_KEY: "{{ ECOMMERCE_JWT_SECRET_KEY }}"
+# Edxapp OAuth2
+EDXAPP_ENABLE_THIRD_PARTY_AUTH: False
+EDXAPP_THIRD_PARTY_AUTH_BACKENDS:
+  - 'social.backends.google.GoogleOAuth2'
+EDXAPP_ENABLE_OAUTH2_PROVIDER: True
+EDXAPP_OAUTH_ENFORCE_SECURE: False
+EDXAPP_LMS_ROOT_URL: "{{ EDXAPP_LMS_BASE_SCHEME | default('https') }}://{{ EDXAPP_LMS_BASE }}"
+EDXAPP_LMS_ISSUER: "{{ EDXAPP_LMS_ROOT_URL }}/oauth2"
+EDXAPP_JWT_EXPIRATION: 30  # Number of seconds until expiration
+EDXAPP_JWT_AUDIENCE: "lms-key"
+EDXAPP_JWT_SECRET_KEY: "lms-secret"
+
+# Insights OAuth2
+INSIGHTS_LMS_BASE: '{{ EDXAPP_LMS_ROOT_URL }}'
+INSIGHTS_BASE_URL: '{{ EDXAPP_LMS_BASE_SCHEME | default('https') }}://insights.example.com'
+INSIGHTS_OAUTH2_APP_CLIENT_NAME: insights
+INSIGHTS_OAUTH2_KEY: 'YOUR_OAUTH2_KEY'
+INSIGHTS_OAUTH2_SECRET: 'secret'
+INSIGHTS_OIDC_LOGOUT_URL: '{{ INSIGHTS_LMS_BASE }}/logout'
+
+# hastexo XBlock
+EDXAPP_EXTRA_REQUIREMENTS:
+  - name: "git+https://github.com/hastexo/hastexo-xblock.git@master#egg=hastexo-xblock"
+EDXAPP_ADDL_INSTALLED_APPS:
+  - 'hastexo'
+EDXAPP_XBLOCK_SETTINGS:
+  hastexo:
+    terminal_url: "{{ gateone_url_prefix }}"
+    ssh_dir: "{{ gateone_user_dir }}/ANONYMOUS/.ssh"
+    ssh_upload: True
+    ssh_bucket: "identities"
+    launch_timeout: 300
+    suspend_timeout: 120
+    task_timeouts:
+      sleep: 5
+      retries: 60
+    js_timeouts:
+      status: 10000
+      keepalive: 15000
+      idle: 600000
+      check: 5000
+    os_auth_url: "https://identity1.citycloud.com:5000/v3"
+    os_auth_token: ""
+    os_username: "hastexo-lab"
+    os_password: "eequ6pheishe0jia0eepoe9einaovoGh"
+    os_user_id: "7ecbe49571b54234ab9f48a23267cc24"
+    os_user_domain_id: "7cce9c47a7e54b7bb95f17423a45b418"
+    os_user_domain_name: ""
+    os_project_id: "5ed51981f4a8468292bf2c578806ebf7"
+    os_project_name: ""
+    os_project_domain_id: ""
+    os_project_domain_name: ""
+    os_region_name: "Kna1"
+
+# Gateone
+gateone_user_dir: "{{COMMON_DATA_DIR }}/edxapp/terminal_users"
+gateone_url_prefix: "/terminal"
+gateone_port: 28010
