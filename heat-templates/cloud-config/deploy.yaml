@@ -1,0 +1,8 @@
+#cloud-config
+merge_how: dict(recurse_array,no_replace)+list(append)
+runcmd:
+  - >
+    git clone -b hastexo/master/openstack
+    https://github.com/hastexo/edx-configuration
+    /var/tmp/edx-configuration
+  - /usr/local/bin/pip install -r /var/tmp/edx-configuration/requirements.txt

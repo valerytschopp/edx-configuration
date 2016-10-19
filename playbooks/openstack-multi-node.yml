@@ -3,14 +3,14 @@
 
 - name: Configure keepalived
   hosts: backend_servers
-  sudo: True
+  become: True
   gather_facts: True
   roles:
     - keepalived
 
 - name: Configure backend servers
   hosts: backend_servers
-  sudo: True
+  become: True
   gather_facts: True
   roles:
     - common
@@ -18,18 +18,22 @@
     - oraclejdk
     - elasticsearch
     - { role: 'mariadb', MARIADB_CREATE_DBS: 'yes' }
+    - memcache
+
+# RabbitMQ needs to be built serially
+- name: Configure RabbitMQ
+  hosts: backend_servers
+  become: True
+  gather_facts: True
+  serial: 1
+  roles:
+    - rabbitmq
 
 - name: Configure app servers
-  hosts: app_servers
-  sudo: True
+  hosts: app_servers:app_master
+  become: True
   gather_facts: True
-  vars:
-    migrate_db: "yes"
-  pre_tasks:
-    - name: Install memcached
-      apt: pkg=memcached state=present
   roles:
-    - { role: 'rabbitmq', rabbitmq_ip: '127.0.0.1' }
     - supervisor
     - role: nginx
       nginx_sites:
@@ -47,3 +51,10 @@
     - { role: 'xqueue', update_users: True }
     - certs
     - demo
+
+- name: Stop all services on app master
+  hosts: app_master
+  become: True
+  gather_facts: True
+  roles:
+    - stop_all_edx_services

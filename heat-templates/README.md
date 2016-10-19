@@ -72,24 +72,24 @@ set two mandatory parameters when invoking Heat:
   using to log in once the machines have spun up.
 
 ```
-heat stack-create \
-  -f heat-templates/hot/edx-single-node.yaml \
-  -P "public_net_id=<uuid>" \
-  -P "key_name=<name>" \
-  <stack_name>
+openstack stack create \
+    --template heat-templates/hot/edx-single-node.yaml \
+    --parameter public_net_id=<uuid> \
+    --parameter key_name=<name> \
+    <stack_name>
 ```
 
 To verify that the stack has reached the `CREATE_COMPLETE` state, run:
 
 ```
-heat stack-show <stack_name>
+openstack stack show <stack_name>
 ```
 
 Once stack creation is complete, you can use `heat output-show` to
 retrieve the IP address of your Open edX host:
 
 ```
-heat output-show <stack_name> public_ip
+openstack stack output show <stack_name> public_ip
 ssh ubuntu@<public_ip>
 ```
 
@@ -97,14 +97,19 @@ Give the node a few minutes to complete its `cloud-init` configuration, which
 will install all ansible prerequisites, including the `edx-configuration`
 repository (check the contents of `/var/log/cloud-init.log` for details).  Once
 `cloud-init` is done, you will be able to start the ansible playbook run from
-within `edx-configuration`.  Before you do so, however, you should enable the
-"localhost" host variables, which will configure this deployment of Open edX:
+within `edx-configuration`.
+
+Before you do so, however, you should enable the "localhost" host variables,
+which will configure this deployment of Open edX.  Due to how Ansible variable
+precedence works, it is recommended that you copy the sample ones to a separate
+directory:
 
 ```
-cd /var/tmp/edx-configuration/playbooks/openstack/host_vars
+cp /var/tmp/edx-configuration/playbooks/openstack /var/tmp/edx-configuration-secrets
+cd /var/tmp/edx-configuration-secrets/host_vars
 cp localhost.example localhost
-cd ../../
-ansible-playbook -i openstack/inventory.ini -c local openstack-single-node.yml
+cd /var/tmp/edx-configuration/playbooks
+ansible-playbook -i ../../edx-configuration-secrets/inventory.ini -c local openstack-single-node.yml
 ```
 
 As mentioned above, this playbook run may take one hour or more.  After it's
@@ -128,7 +133,7 @@ If you want to deploy the hastexo XBlock together with Open edX to your single
 node, go back to your installed node and:
 
 1. Locate the following variables in
-   `/var/tmp/edx-configuration/playbooks/openstack/host_vars/localhost` (which
+   `/var/tmp/edx-configuration-secrets/host_vars/localhost` (which
    you created above) and change them as described:
 
     ```
@@ -138,7 +143,15 @@ node, go back to your installed node and:
       - 'hastexo'
     ```
 
-2. Add the `gateone` role to `openstack-single-node.yml` and rerun that
+2. Check out the `hastexo/integration/base` branch of edx-configuration, which
+   contains the `gateone` role:
+
+    ```
+    $ cd /var/tmp/edx-configuration
+    $ git checkout -b hastexo/integration/base origin/hastexo/integration/base
+    ```
+
+3. Add the `gateone` role to `openstack-single-node.yml` and rerun that
    playbook:
 
     ```
@@ -148,7 +161,7 @@ node, go back to your installed node and:
      - certs
      - demo
      - gateone
-    $ ansible-playbook -i openstack/inventory.ini -c local openstack-single-node.yaml
+    $ ansible-playbook -i ../../edx-configuration-secrets/inventory.ini -c local openstack-single-node.yaml
     ```
 
 
@@ -168,25 +181,25 @@ parameters when invoking Heat:
 In addition, you must set the name of the stack.
 
 ```
-heat stack-create \
-  -f heat-templates/hot/edx-multi-node.yaml \
-  -P "public_net_id=<uuid>" \
-  -P "app_count=<num>" \
-  -P "key_name=<name>" \
-  <stack_name>
+openstack stack create \
+    --template heat-templates/hot/edx-multi-node.yaml \
+    --parameter public_net_id=<uuid> \
+    --parameter app_count=<num> \
+    --parameter key_name=<name> \
+    <stack_name>
 ```
 
 To verify that the stack has reached the `CREATE_COMPLETE` state, run:
 
 ```
-heat stack-show <stack_name>
+openstack stack show <stack_name>
 ```
 
-Once stack creation is complete, you can use `heat output-show` to
+Once stack creation is complete, you can use `openstack stack output show` to
 retrieve the IP address of your deployment host:
 
 ```
-heat output-show <stack_name> deploy_ip
+openstack stack output show <stack_name> deploy_ip
 ssh ubuntu@<deploy_ip>
 ```
 
@@ -194,23 +207,29 @@ Give the deploy node a few minutes to complete its `cloud-init` configuration,
 which will install all ansible prerequisites, including the `edx-configuration`
 repository (check the contents of `/var/log/cloud-init.log` for details).  Once
 `cloud-init` is done, you will be able to start the ansible playbook run from
-within `edx-configuration`.  Before you do so, however, you should enable the
-default group and host variables, which will configure this deployment of Open
-edX to the cluster:
+within `edx-configuration`.
+
+Before you do so, however, you should enable the default group and host
+variables, which will configure this deployment of Open edX to the cluster.
+Due to how Ansible variable precedence works, it is recommended that you copy
+the sample ones to a separate directory:
 
 ```
-cd /var/tmp/edx-configuration/playbooks/openstack/group_vars
+cp /var/tmp/edx-configuration/playbooks/openstack /var/tmp/edx-configuration-secrets
+cd /var/tmp/edx-configuration-secrets/group_vars
 for i in all backend_servers app_servers; do cp $i.example $i; done
 cd ../host_vars
-for i in `202 203 204; do cp 192.168.122.$i.example 192.168.122.$i; done
+for i in 111 112 113; do cp 192.168.122.$i.example 192.168.122.$i; done
 ```
 
 Be sure to run the `inventory.py` dynamic inventory generator, as opposed to
-the static `intentory.ini`, meant for single node deployments:
+the static `intentory.ini`, meant for single node deployments.  Also, set
+`migrate_db=yes` on this first run, to ensure that the databases and tables are
+properly created.
 
 ```
 cd /var/tmp/edx-configuration/playbooks
-ansible-playbook -i openstack/inventory.py openstack-multi-node.yml
+ansible-playbook -i ../../edx-configuration-secrets/inventory.py openstack-multi-node.yml -e migrate_db=yes
 ```
 
 This playbook run may take one hour or more.  After it's done, log out of the
@@ -219,7 +238,7 @@ example variables, enter the following, substituting `app_ip` for the IP
 address of the app server pool you can obtain with the following Heat command:
 
 ```
-heat output-show <stack_name> app_ip
+openstack stack output show <stack_name> app_ip
 vim /etc/hosts
 ---
 <app_ip> lms.example.com studio.example.com
@@ -232,16 +251,11 @@ HTTPS URLs, respectively:
 * https://studio.example.com
 
 To deploy additional application servers within a previously deployed
-stack, use the `heat stack-update` command to increase the `app_count`
+stack, use the `openstack stack update` command to increase the `app_count`
 stack parameter:
 
 ```
-heat stack-update \
-  -f heat-templates/hot/edx-multi-node.yaml \
-  -P "public_net_id=<uuid>" \
-  -P "app_count=<new_num>" \
-  -P "key_name=<name>" \
-  <stack_name>
+openstack stack update --existing --parameter app_count=<new_num> <stack_name>
 ```
 
 If you removed app servers, there's nothing else you need to do.
@@ -252,9 +266,7 @@ database migrations:
 
 ```
 cd /var/tmp/edx-configuration/playbooks
-ansible-playbook -i openstack/inventory.py openstack-multi-node.yml \
-  -e "migrate_db=no" \
-  --limit app_servers
+ansible-playbook -i ../../edx-configuration-secrets/inventory.py openstack-multi-node.yml --limit app_servers
 ```
 
 #### Multiple nodes with the hastexo XBlock
@@ -263,8 +275,8 @@ If you want to deploy the hastexo XBlock together with Open edX to your multi
 node cluster, go back to your deploy node and:
 
 1. Locate the following variables in
-   `/var/tmp/edx-configuration/playbooks/openstack/group_vars/all` (which you
-   created above) and change them as described:
+   `/var/tmp/edx-configuration-secrets/group_vars/all` (which you created
+   above) and change them as described:
 
     ```
     EDXAPP_EXTRA_REQUIREMENTS:
@@ -273,7 +285,15 @@ node cluster, go back to your deploy node and:
       - 'hastexo'
     ```
 
-2. Add the `gateone` role to `openstack-multi-node.yml` under the `app_servers`
+2. Check out the `hastexo/integration/base` branch of edx-configuration, which
+   contains the `gateone` role:
+
+    ```
+    $ cd /var/tmp/edx-configuration
+    $ git checkout -b hastexo/integration/base origin/hastexo/integration/base
+    ```
+
+3. Add the `gateone` role to `openstack-multi-node.yml` under the `app_servers`
    section (the last one) and rerun that playbook, limitting the run
    appropriately:
 
@@ -284,9 +304,197 @@ node cluster, go back to your deploy node and:
     - certs
     - demo
     - gateone
-    $ ansible-playbook -i openstack/inventory.py openstack-multi-node.yml \
-      --limit app_servers
+    $ ansible-playbook -i ../../edx-configuration-secrets/inventory.py openstack-multi-node.yml --limit app_servers
     ```
+
+#### Working with app server master images
+
+If you have more than just a few app servers, maintaining them directly with
+ansible is very inefficient.  To solve this, an `edx-app-master.yaml` template
+is provided.  With it, you can create a golden master image of a pristine app
+server, taking advantage of the multi-node stack you may already have.
+
+To deploy a master app server to an existing multi-node stack, you can either
+request it to be created by the the existing stack, or you you can use the
+`edx-app-master.yaml` template directly.
+
+
+##### Requesting a new app master
+
+To request the existing stack to create a new app master server, invoke:
+
+```
+openstack stack update \
+    --existing \
+    --parameter enable_app_master=1 \
+    --parameter app_master_image=<app_master_image> \
+    <existing_stack_name>
+```
+
+Now, run the `openstack-multi-node.yaml` playbook on the app master from the
+deploy node.  You may also want to run database migrations at this point:
+
+```
+cd /var/tmp/edx-configuration/playbooks
+ansible-playbook \
+    -i ../../edx-configuration-secrets/openstack.py \
+    --limit app_master [-e migrate_db=yes] \
+    openstack-multi-node.yml
+```
+
+After the run finishes, go back to your local terminal to stop the server, and
+create an image from it:
+
+```
+eval $(openstack stack output show openstacksummit-edx app_master_id --format shell)
+openstack server stop ${output_value}
+openstack server image create --name <image_name> ${output_value}
+```
+
+Run the following to keep tabs on the image creation.
+
+```
+openstack image show <image_name>
+```
+
+Once it's active, you're free to disable the app master stack:
+
+```
+openstack stack update \
+    --existing \
+    --parameter enable_app_master=0
+    <existing_stack_name>
+```
+
+And finally, you can use the image to update your existing stack.  For example:
+
+```
+openstack stack update \
+    --existing \
+    --parameter app_image=<image_name> \
+    <existing_stack_name>
+```
+
+
+##### Using `edx-app-master.yaml` directly
+
+To use the `edx-app-master.yaml` template directly, you must set a few
+mandatory parameters when invoking Heat:
+
+- `name`, the name of the master server
+- `image`, the base image to use
+- `flavor`, the flavor to use
+- `key_name`, the name of the Nova keypair to use
+- `network`, the id of the existing stack's management network
+- `security_group`, the id of the existing stack's server security group
+
+You can find out the management network ID and security group ID by issuing:
+
+```
+openstack stack resource show <existing_stack_name> management_net | grep physical_resource_id
+openstack stack resource show <existing_stack_name> server_security_group | grep physical_resource_id
+```
+
+Where `<existing_stack_name>` is the name of the previously created multi-node
+stack.
+
+Finally, this is how you would create the auxiliary stack:
+
+```
+openstack stack create \
+    --template heat-templates/hot/edx-app-master.yaml \
+    --parameter name=<server_name> \
+    --parameter image=<app_master_image> \
+    --parameter flavor=<server_flavor> \
+    --parameter key_name=<key_name> \
+    --parameter network=<existing_network> \
+    --parameter security_group=<existing_security_group> \
+    <stack_name>
+```
+
+To verify that the stack has reached the `CREATE_COMPLETE` state, run:
+
+```
+openstack stack show <stack_name>
+```
+
+Once stack creation is complete, you can use `openstack stack output show` to
+retrieve the internal IP address of the app master server:
+
+```
+openstack stack output show <stack_name> server_ip
+...
+"192.168.122.206"
+```
+
+Now, SSH into the existing stack's deploy node:
+
+```
+openstack stack output show <existing_stack_name> deploy_ip
+ssh ubuntu@<deploy_ip>
+```
+
+You'll create a static inventory file, `app_master.ini`, containing the
+existing `backend_servers`, and only the app master under `app_master`:
+
+```
+vim /var/tmp/edx-configuration-secrets/app_master.ini
+...
+[app_master]
+192.168.122.206
+
+[backend_servers]
+192.168.122.111
+192.168.122.112
+192.168.122.113
+```
+
+You can find out what are the existing backend servers by running:
+
+```
+/var/tmp/edx-configuration-secrets/openstack.py --list
+```
+
+Now, run the `edx-multi-node.yaml` playbook using this inventory file on the
+`app_master` group.  You may also want to run database migrations at this
+point:
+
+```
+cd /var/tmp/edx-configuration/playbooks
+ansible-playbook \
+    -i ../../edx-configuration-secrets/app_master.ini \
+    --limit app_master [-e migrate_db=yes] \
+    openstack-multi-node.yml
+```
+
+After the run finishes, go back to your local terminal stop the server, and
+create an image from it:
+
+```
+openstack server stop <server_name>
+openstack server image create --name <image_name> <server_name>
+```
+
+Run the following to keep tabs on the image creation.
+
+```
+openstack image show <image_name>
+```
+
+Once it's active, you're free to delete the app master stack:
+
+```
+openstack stack delete <stack_name>
+```
+
+And finally, you can use the image to update your existing stack.  For example:
+
+```
+openstack stack update \
+    --existing \
+    --parameter app_image=<image_name> \
+    <existing_stack_name>
+```
 
 
 ## Backing up MySQL and MongoDB data on a multi-node stack
@@ -308,8 +516,8 @@ It is recommended that this playbook be run with:
     --limit <secondary_backend_node>
 
 With the sample multi-node Heat template, it would either be `--limit
-192.168.122.203` or `--limit 192.168.122.204`.  It should not be targetted on
-the primary backend node (`192.168.122.202`), because in order to get a
+192.168.122.112` or `--limit 192.168.122.113`.  It should not be targetted on
+the primary backend node (`192.168.122.111`), because in order to get a
 consistent snapshot, prior to snapshotting it will stop the MariaDB service and
 sync the filesystem.  (MongoDB doesn't require special handling due to the fact
 that its journal is stored in the same volume as the database being
@@ -342,13 +550,14 @@ backup playbook.
 You will also need to create an SSH key without a passphrase for the ubuntu
 user on the deploy node, and distribute it to the other nodes.   This is so
 that Ansible can connect to the backend node without human intervention.  A
-hands-free way to create one and copy it to all backend nodes would be:
+hands-free way to create one and copy it to all backend nodes, and one app
+node, would be:
 
 ```
 KEYFILE=~/.ssh/id_rsa
 ssh-keygen -t rsa -N "" -f $KEYFILE
-for i in `seq 2 4`; do
-    ssh-keyscan 192.168.122.20${i} >> ~/.ssh/known_hosts
+for i in 111 112 113 202; do
+    ssh-keyscan 192.168.122.${i} >> ~/.ssh/known_hosts
     ssh-copy-id -i $KEYFILE $i
 done
 ```
