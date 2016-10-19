@@ -38,7 +38,7 @@ parameters:
     default: 900
 
 resources:
-  # all_done: Wait condition to signal that the server has completed its
+  # server_done: Wait condition to signal that the server has completed its
   # installation.
   server_done:
     type: OS::Heat::WaitCondition
