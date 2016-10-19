@@ -2,7 +2,7 @@
 # single deployment node, 3 backend servers backed by persistent
 # volumes, a configurable number of ephemeral application servers, and
 # a load balancing pool behind a floating IP.
-heat_template_version: 2013-05-23
+heat_template_version: 2015-04-30
 
 description: >
   Full Open edX deployment: 3 backend nodes, configurable
@@ -21,6 +21,12 @@ parameters:
       Image ID or name.
       Should be a distribution platform supported for Open edX.
     default: ubuntu-14.04-server-cloudimg
+  app_master_image:
+    type: string
+    description: >
+      Image ID or name.
+      Should be a distribution platform supported for Open edX.
+    default: ubuntu-14.04-server-cloudimg
   deploy_flavor:
     type: string
     description: Flavor to use for deploy node
@@ -29,6 +35,12 @@ parameters:
     type: string
     description: Flavor to use for backend servers
     default: m1.medium
+  enable_app_master:
+    type: number
+    description: Control app master server creation
+    constraints:
+      - allowed_values: [ 0, 1 ]
+    default: 0
   app_flavor:
     type: string
     description: Flavor to use for app servers
@@ -245,6 +257,7 @@ resources:
           - { get_attr: [ backend1, server_ip ] }
           - { get_attr: [ backend2, server_ip ] }
         app_servers: { get_attr: [ app_servers, server_ip ] }
+        app_master: { get_attr: [ app_master, server_ip ] }
 
   # deploy_management_port: the deploy node's network port in the
   # management network
@@ -320,6 +333,22 @@ resources:
       galera_vip: { get_param: galera_vip }
       wait_condition_callback: { get_attr: ['backend_done_handle', 'curl_cli'] }
 
+  # app_master: conditionally create an application master server
+  app_master:
+    type: OS::Heat::ResourceGroup
+    depends_on: management_sub_net
+    properties:
+      count: { get_param: enable_app_master }
+      resource_def:
+        type: edx-app-master.yaml
+        properties:
+          name: app-master
+          flavor: { get_param: app_flavor }
+          image: { get_param: app_master_image }
+          key_name: { get_param: key_name }
+          network: { get_resource: management_net }
+          security_group: { get_resource: server_security_group }
+
   # app_servers: creates an application server cluster of a
   # configurable size
   #
@@ -389,3 +418,6 @@ outputs:
   app_ip:
     description: IP address of the app_server group.
     value: { get_attr: [ app_server_floating_ip, floating_ip_address ] }
+  app_master_id:
+    description: ID of the app master server
+    value: { get_attr: [ app_master, refs, 0 ] }

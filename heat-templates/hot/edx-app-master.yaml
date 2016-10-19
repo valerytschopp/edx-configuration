@@ -2,7 +2,7 @@
 # Nova instance of the defined flavor.  It is ephemeral and uses no persistent
 # storage.  It is meant to be created on demand, in the same stack where it is
 # to be configured.
-heat_template_version: 2013-05-23
+heat_template_version: 2015-04-30
 
 description: >
   Open edX application master server
@@ -103,6 +103,8 @@ resources:
       security_groups: [ { get_param: security_group } ]
 
 outputs:
+  OS::stack_id:
+    value: { get_resource: server }
   server_ip:
     description: "Server's private IP address"
     value: { get_attr: [ server, first_address ] }

@@ -30,7 +30,7 @@
     - rabbitmq
 
 - name: Configure app servers
-  hosts: app_servers
+  hosts: app_servers:app_master
   become: True
   gather_facts: True
   roles:
@@ -51,3 +51,10 @@
     - { role: 'xqueue', update_users: True }
     - certs
     - demo
+
+- name: Stop all services on app master
+  hosts: app_master
+  become: True
+  gather_facts: True
+  roles:
+    - stop_all_edx_services

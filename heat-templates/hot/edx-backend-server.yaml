@@ -2,7 +2,7 @@
 # invoked from an OS::Heat::ResourceGroup. It creates a Nova instance
 # of the defined flavor, and adds two volumes (for MongoDB and
 # MySQL/MariaDB storage).
-heat_template_version: 2013-05-23
+heat_template_version: 2015-04-30
 
 description: >
   Open edX backend server

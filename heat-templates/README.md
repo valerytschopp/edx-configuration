@@ -72,24 +72,24 @@ set two mandatory parameters when invoking Heat:
   using to log in once the machines have spun up.
 
 ```
-heat stack-create \
-  -f heat-templates/hot/edx-single-node.yaml \
-  -P "public_net_id=<uuid>" \
-  -P "key_name=<name>" \
-  <stack_name>
+openstack stack create \
+    --template heat-templates/hot/edx-single-node.yaml \
+    --parameter public_net_id=<uuid> \
+    --parameter key_name=<name> \
+    <stack_name>
 ```
 
 To verify that the stack has reached the `CREATE_COMPLETE` state, run:
 
 ```
-heat stack-show <stack_name>
+openstack stack show <stack_name>
 ```
 
 Once stack creation is complete, you can use `heat output-show` to
 retrieve the IP address of your Open edX host:
 
 ```
-heat output-show <stack_name> public_ip
+openstack stack output show <stack_name> public_ip
 ssh ubuntu@<public_ip>
 ```
 
@@ -181,25 +181,25 @@ parameters when invoking Heat:
 In addition, you must set the name of the stack.
 
 ```
-heat stack-create \
-  -f heat-templates/hot/edx-multi-node.yaml \
-  -P "public_net_id=<uuid>" \
-  -P "app_count=<num>" \
-  -P "key_name=<name>" \
-  <stack_name>
+openstack stack create \
+    --template heat-templates/hot/edx-multi-node.yaml \
+    --parameter public_net_id=<uuid> \
+    --parameter app_count=<num> \
+    --parameter key_name=<name> \
+    <stack_name>
 ```
 
 To verify that the stack has reached the `CREATE_COMPLETE` state, run:
 
 ```
-heat stack-show <stack_name>
+openstack stack show <stack_name>
 ```
 
-Once stack creation is complete, you can use `heat output-show` to
+Once stack creation is complete, you can use `openstack stack output show` to
 retrieve the IP address of your deployment host:
 
 ```
-heat output-show <stack_name> deploy_ip
+openstack stack output show <stack_name> deploy_ip
 ssh ubuntu@<deploy_ip>
 ```
 
@@ -238,7 +238,7 @@ example variables, enter the following, substituting `app_ip` for the IP
 address of the app server pool you can obtain with the following Heat command:
 
 ```
-heat output-show <stack_name> app_ip
+openstack stack output show <stack_name> app_ip
 vim /etc/hosts
 ---
 <app_ip> lms.example.com studio.example.com
@@ -251,11 +251,11 @@ HTTPS URLs, respectively:
 * https://studio.example.com
 
 To deploy additional application servers within a previously deployed
-stack, use the `heat stack-update` command to increase the `app_count`
+stack, use the `openstack stack update` command to increase the `app_count`
 stack parameter:
 
 ```
-heat stack-update -x -P "app_count=<new_num>" <stack_name>
+openstack stack update --existing --parameter app_count=<new_num> <stack_name>
 ```
 
 If you removed app servers, there's nothing else you need to do.
@@ -310,13 +310,76 @@ node cluster, go back to your deploy node and:
 #### Working with app server master images
 
 If you have more than just a few app servers, maintaining them directly with
-ansible is very inefficient.  To solve this, an `edx-app-master.yaml` playbook
+ansible is very inefficient.  To solve this, an `edx-app-master.yaml` template
 is provided.  With it, you can create a golden master image of a pristine app
-server, taking advantage of the multi-node stack you already have.
+server, taking advantage of the multi-node stack you may already have.
 
-To deploy a master app server to an existing multi-node stack, use the
-`edx-app-master.yaml` template. You must set a few mandatory parameters when
-invoking Heat:
+To deploy a master app server to an existing multi-node stack, you can either
+request it to be created by the the existing stack, or you you can use the
+`edx-app-master.yaml` template directly.
+
+
+##### Requesting a new app master
+
+To request the existing stack to create a new app master server, invoke:
+
+```
+openstack stack update \
+    --existing \
+    --parameter enable_app_master=1 \
+    --parameter app_master_image=<app_master_image> \
+    <existing_stack_name>
+```
+
+Now, run the `openstack-multi-node.yaml` playbook on the app master from the
+deploy node.  You may also want to run database migrations at this point:
+
+```
+cd /var/tmp/edx-configuration/playbooks
+ansible-playbook \
+    -i ../../edx-configuration-secrets/openstack.py \
+    --limit app_master [-e migrate_db=yes] \
+    openstack-multi-node.yml
+```
+
+After the run finishes, go back to your local terminal to stop the server, and
+create an image from it:
+
+```
+eval $(openstack stack output show openstacksummit-edx app_master_id --format shell)
+openstack server stop ${output_value}
+openstack server image create --name <image_name> ${output_value}
+```
+
+Run the following to keep tabs on the image creation.
+
+```
+openstack image show <image_name>
+```
+
+Once it's active, you're free to disable the app master stack:
+
+```
+openstack stack update \
+    --existing \
+    --parameter enable_app_master=0
+    <existing_stack_name>
+```
+
+And finally, you can use the image to update your existing stack.  For example:
+
+```
+openstack stack update \
+    --existing \
+    --parameter app_image=<image_name> \
+    <existing_stack_name>
+```
+
+
+##### Using `edx-app-master.yaml` directly
+
+To use the `edx-app-master.yaml` template directly, you must set a few
+mandatory parameters when invoking Heat:
 
 - `name`, the name of the master server
 - `image`, the base image to use
@@ -328,37 +391,38 @@ invoking Heat:
 You can find out the management network ID and security group ID by issuing:
 
 ```
-heat resource-show <existing_stack_name> management_net | grep physical_resource_id
-heat resource-show <existing_stack_name> server_security_group | grep physical_resource_id
+openstack stack resource show <existing_stack_name> management_net | grep physical_resource_id
+openstack stack resource show <existing_stack_name> server_security_group | grep physical_resource_id
 ```
 
 Where `<existing_stack_name>` is the name of the previously created multi-node
 stack.
 
-This is how you would create the auxiliary stack:
+Finally, this is how you would create the auxiliary stack:
 
 ```
-heat stack-create \
-  -f heat-templates/hot/edx-app-master.yaml \
-  -P "name=<server_name>" \
-  -P "flavor=<server_flavor>" \
-  -P "key_name=<key_name>" \
-  -P "network=<existing_network>" \
-  -P "security_group=<existing_security_group>" \
-  <stack_name>
+openstack stack create \
+    --template heat-templates/hot/edx-app-master.yaml \
+    --parameter name=<server_name> \
+    --parameter image=<app_master_image> \
+    --parameter flavor=<server_flavor> \
+    --parameter key_name=<key_name> \
+    --parameter network=<existing_network> \
+    --parameter security_group=<existing_security_group> \
+    <stack_name>
 ```
 
 To verify that the stack has reached the `CREATE_COMPLETE` state, run:
 
 ```
-heat stack-show <stack_name>
+openstack stack show <stack_name>
 ```
 
-Once stack creation is complete, you can use `heat output-show` to retrieve the
-internal IP address of the app master server:
+Once stack creation is complete, you can use `openstack stack output show` to
+retrieve the internal IP address of the app master server:
 
 ```
-heat output-show <stack_name> server_ip
+openstack stack output show <stack_name> server_ip
 ...
 "192.168.122.206"
 ```
@@ -366,17 +430,17 @@ heat output-show <stack_name> server_ip
 Now, SSH into the existing stack's deploy node:
 
 ```
-heat output-show <existing_stack_name> deploy_ip
+openstack stack output show <existing_stack_name> deploy_ip
 ssh ubuntu@<deploy_ip>
 ```
 
 You'll create a static inventory file, `app_master.ini`, containing the
-existing `backend_servers`, and only the app master under `app_servers`:
+existing `backend_servers`, and only the app master under `app_master`:
 
 ```
 vim /var/tmp/edx-configuration-secrets/app_master.ini
 ...
-[app_servers]
+[app_master]
 192.168.122.206
 
 [backend_servers]
@@ -392,12 +456,15 @@ You can find out what are the existing backend servers by running:
 ```
 
 Now, run the `edx-multi-node.yaml` playbook using this inventory file on the
-`app_servers` group.  You may also want to run database migrations at this
+`app_master` group.  You may also want to run database migrations at this
 point:
 
 ```
 cd /var/tmp/edx-configuration/playbooks
-ansible-playbook -i ../../edx-configuration-secrets/app_master.ini openstack-multi-node.yml --limit app_servers [-e migrate_db=yes]
+ansible-playbook \
+    -i ../../edx-configuration-secrets/app_master.ini \
+    --limit app_master [-e migrate_db=yes] \
+    openstack-multi-node.yml
 ```
 
 After the run finishes, go back to your local terminal stop the server, and
@@ -417,16 +484,16 @@ openstack image show <image_name>
 Once it's active, you're free to delete the app master stack:
 
 ```
-heat stack-delete <stack_name>
+openstack stack delete <stack_name>
 ```
 
 And finally, you can use the image to update your existing stack.  For example:
 
 ```
-heat stack-update -x \
-  -P "app_image=<image_name>" \
-  -P "app_count=10" \
-  <existing_stack_name>
+openstack stack update \
+    --existing \
+    --parameter app_image=<image_name> \
+    <existing_stack_name>
 ```
 
 
