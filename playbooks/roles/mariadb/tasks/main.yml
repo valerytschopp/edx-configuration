@@ -67,113 +67,75 @@
   when: MARIADB_CREATE_DBS|bool
   run_once: true
 
-- name: create all analytics dbs
+- name: create a database for the hive metastore
   mysql_db:
-    db: "{{ item }}"
-    state: present
-    encoding: utf8
-  with_items: "{{ MARIADB_ANALYTICS_DATABASES }}"
-  when: MARIADB_CREATE_DBS|bool and ANALYTICS_API_SERVICE_CONFIG is defined
+    db: "{{ HIVE_METASTORE_DATABASE.name }}"
+    state: "present"
+    encoding: "latin1"
+  when: MARIADB_CREATE_DBS|bool and HIVE_METASTORE_DATABASE is defined
   run_once: true
 
-- name: create notes db
-  mysql_db:
-    db: "{{ item }}"
-    state: present
-    encoding: utf8
-  with_items: "{{ MARIADB_NOTES_DATABASES }}"
-  when: MARIADB_CREATE_DBS|bool and edx_notes_api_service_config is defined
-  run_once: true
-
-- name: create insights db
-  mysql_db:
-    db: "{{ item }}"
-    state: present
-    encoding: utf8
-  with_items: "{{ MARIADB_INSIGHTS_DATABASES }}"
-  when: MARIADB_CREATE_DBS|bool and INSIGHTS_CONFIG is defined
-  run_once: true
-
-- name: create ecommerce db
-  mysql_db:
-    db: {{ item }}
-    state: present
-    encoding: utf8
-  with_items: "{{ MARIADB_ECOMMERCE_DATABASES }}"
-  when: MARIADB_CREATE_DBS|bool and ECOMMERCE_SERVICE_CONFIG is defined
-  run_once: true
-
-- name: create programs db
-  mysql_db:
-    db: {{ item }}
-    state: present
-    encoding: utf8
-  with_items: "{{ MARIADB_PROGRAMS_DATABASES }}"
-  when: MARIADB_CREATE_DBS|bool and PROGRAMS_SERVICE_CONFIG is defined
-  run_once: true
-
-- name: create all users/privs
+- name: create database users
   mysql_user:
-    name: "{{ item.name }}"
+    name: "{{ item.user }}"
     password: "{{ item.pass }}"
-    priv: "{{ item.priv }}"
-    host: "{{ item.host }}"
+    priv: "{{ item.db }}.*:ALL"
+    host: "{{ MARIADB_HOST_PRIV }}"
     append_privs: yes
+  when: item.db != None and item.db != ''
   with_items: "{{ MARIADB_USERS }}"
-  when: MARIADB_CREATE_DBS|bool
   run_once: true
 
-- name: create all analytics users/privs
+- name: setup the migration db user
   mysql_user:
-    name: "{{ item.name }}"
-    password: "{{ item.pass }}"
-    priv: "{{ item.priv }}"
-    host: "{{ item.host }}"
+    name: "{{ COMMON_MYSQL_MIGRATE_USER }}"
+    password: "{{ COMMON_MYSQL_MIGRATE_PASS }}"
+    priv: "{{ item }}.*:ALL"
+    host: "{{ MARIADB_HOST_PRIV }}"
     append_privs: yes
-  with_items: "{{ MARIADB_ANALYTICS_USERS }}"
-  when: MARIADB_CREATE_DBS|bool and ANALYTICS_API_SERVICE_CONFIG is defined
+  when: item != None and item != ''
+  with_items: "{{ MARIADB_DATABASES }}"
   run_once: true
 
-- name: create all notes users/privs
+- name: create api user for the analytics api
   mysql_user:
-    name: "{{ item.name }}"
-    password: "{{ item.pass }}"
-    priv: "{{ item.priv }}"
-    host: "{{ item.host }}"
-    append_privs: yes
-  with_items: "{{ MARIADB_NOTES_USERS }}"
-  when: MARIADB_CREATE_DBS|bool and edx_notes_api_service_config is defined
+    name: "api001"
+    password: "{{ ANALYTICS_API_DATABASES.default.PASSWORD }}"
+    priv: '{{ ANALYTICS_API_DATABASES.default.NAME }}.*:ALL/reports.*:SELECT'
+    host: "{{ MARIADB_HOST_PRIV }}"
+  when: ANALYTICS_API_DATABASES is defined
   run_once: true
 
-- name: create all insights users/privs
+- name: create read-only reports user for the analytics-api
   mysql_user:
-    name: "{{ item.name }}"
-    password: "{{ item.pass }}"
-    priv: "{{ item.priv }}"
-    host: "{{ item.host }}"
-    append_privs: yes
-  with_items: "{{ MARIADB_INSIGHTS_USERS }}"
-  when: MARIADB_CREATE_DBS|bool and INSIGHTS_CONFIG is defined
+    name: "reports001"
+    password: "{{ ANALYTICS_API_DATABASES.reports.PASSWORD }}"
+    priv: '{{ ANALYTICS_API_DATABASES.reports.NAME }}.*:SELECT'
+    host: "{{ MARIADB_HOST_PRIV }}"
+  when: ANALYTICS_API_DATABASES is defined
   run_once: true
 
-- name: create all ecommerce users/privs
+- name: setup the edx-notes-api db user
   mysql_user:
-    name: "{{ item.name }}"
-    password: "{{ item.pass }}"
-    priv: "{{ item.priv }}"
-    host: "{{ item.host }}"
-    append_privs=yes
-  with_items: "{{ MARIADB_ECOMMERCE_USERS }}"
-  when: MARIADB_CREATE_DBS|bool and ECOMMERCE_SERVICE_CONFIG is defined
+    name: "{{ EDX_NOTES_API_MYSQL_DB_USER }}"
+    password: "{{ EDX_NOTES_API_MYSQL_DB_PASS }}"
+    priv: "{{ EDX_NOTES_API_MYSQL_DB_NAME }}.*:SELECT,INSERT,UPDATE,DELETE"
+    host: "{{ MARIADB_HOST_PRIV }}"
+  when: EDX_NOTES_API_MYSQL_DB_NAME is defined
   run_once: true
 
-- name: create all programs users/privs
+- name: setup the read-only db user
   mysql_user:
-    name: "{{ item.name }}"
-    password: "{{ item.pass }}"
-    priv: "{{ item.priv }}"
-    host: "{{ item.host }}"
-    append_privs: yes
-  with_items: "{{ MARIADB_PROGRAMS_USERS }}"
-  when: MARIADB_CREATE_DBS|bool and PROGRAMS_SERVICE_CONFIG is defined
+    name: "{{ COMMON_MYSQL_READ_ONLY_USER }}"
+    password: "{{ COMMON_MYSQL_READ_ONLY_PASS }}"
+    priv: "*.*:ALL"
+    host: "{{ MARIADB_HOST_PRIV }}"
+  run_once: true
+
+- name: setup the admin db user
+  mysql_user:
+    name: "{{ COMMON_MYSQL_ADMIN_USER }}"
+    password: "{{ COMMON_MYSQL_ADMIN_PASS }}"
+    priv: "*.*:CREATE USER"
+    host: "{{ MARIADB_HOST_PRIV }}"
   run_once: true
