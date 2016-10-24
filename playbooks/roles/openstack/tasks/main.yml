@@ -34,11 +34,20 @@
     group: root
   when: COMMON_OBJECT_STORE_LOG_SYNC
 
+- name: Create log sync script
+  template:
+    src: get-logs-from-swift.j2
+    dest: "{{ openstack_log_download_script }}"
+    mode: 0755
+    owner: root
+    group: root
+  when: COMMON_OBJECT_STORE_LOG_SYNC
+
 - name: Upload openstack credentials for log script
   template:
     src: log-sync-env.sh.j2
     dest: "{{ openstack_log_sync_script_environment }}"
-    mode: 0600
+    mode: 0664
     owner: root
     group: root
   when: COMMON_OBJECT_STORE_LOG_SYNC
