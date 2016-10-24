@@ -164,20 +164,32 @@
     - install
     - install:base
 
-- name: Ensure tracking log file can be read
+- name: Ensure temporary download directory exists
   file:
-    path: "{{ COMMON_LOG_DIR }}/tracking/tracking.log"
-    mode: "0644"
-  ignore_errors: yes
+    path: "{{ HADOOP_COMMON_DATA }}/tmp"
+    owner: "{{ hadoop_common_user }}"
+    group: "{{ hadoop_common_group }}"
+    state: directory
   tags:
     - install
-    - install:configuration
+    - install:base
+  when: COMMON_OBJECT_STORE_LOG_SYNC
 
-- name: Cron job syncs tracking log file to hdfs
+- name: Cron job syncs log files to hdfs
   cron:
     user: "{{ hadoop_common_user }}"
-    name: "Sync tracking log to HDFS"
-    job: "{{ HADOOP_COMMON_HOME }}/bin/hdfs dfs -put -f {{ COMMON_LOG_DIR }}/tracking/tracking.log {{ ANALYTICS_PIPELINE_HDFS_DATA_DIR }}/tracking.log"
+    name: "Sync tracking logs from Swift"
+    special_time: hourly
+    job: >
+      {{ openstack_log_download_script }}
+      -d {{ HADOOP_COMMON_DATA }}/tmp
+      -b {{ COMMON_OBJECT_STORE_LOG_SYNC_BUCKET }}
+      -p {{ COMMON_OBJECT_STORE_LOG_SYNC_PREFIX }};
+      {{ HADOOP_COMMON_HOME }}/bin/hdfs
+      dfs -copyFromLocal
+      {{ HADOOP_COMMON_DATA }}/tmp/*
+      {{ ANALYTICS_PIPELINE_HDFS_DATA_DIR }}/
   tags:
     - install
     - install:configuration
+  when: COMMON_OBJECT_STORE_LOG_SYNC and openstack_log_download_script
