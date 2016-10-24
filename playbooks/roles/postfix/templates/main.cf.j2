@@ -32,6 +32,9 @@ mydomain = {{ postfix_domain }}
 {% if postfix_relayhost is defined %}
 relayhost = {{ postfix_relayhost }}
 {% endif %}
+{% if postfix_smtp_use_tls %}
+smtp_use_tls = yes
+{% endif %}
 {% if postfix_mailbox_command is defined %}
 mailbox_command = {{ postfix_mailbox_command }}
 {% endif %}
