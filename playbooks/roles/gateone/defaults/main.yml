@@ -6,3 +6,5 @@ gateone_url_prefix: "/terminal"
 gateone_user_dir: "{{ edxapp_data_dir }}/terminal_users"
 gateone_command: "{{ edxapp_app_dir }}/venvs/edxapp/bin/hastexo_connect.py"
 gateone_port: 28010
+gateone_uid: "{{ common_web_user }}"
+gateone_gid: "{{ common_web_group }}"

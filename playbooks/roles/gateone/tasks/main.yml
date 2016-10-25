@@ -37,15 +37,15 @@
   file: >
     path="{{ item }}"
     state=directory
-    owner="{{ edxapp_user }}"
-    group="{{ common_web_group }}"
+    owner="{{ gateone_uid }}"
+    group="{{ gateone_gid }}"
     mode="0775"
   with_items:
     - "{{ gateone_user_dir }}/ANONYMOUS/.ssh"
 
 - name: terminal user directory ownership
   shell: >
-    chown -R {{ common_web_user }} {{ gateone_user_dir }}
+    chown -R {{ gateone_uid }}:{{ gateone_gid }} {{ gateone_user_dir }}
 
 - name: terminal user directory permissions
   shell: >
