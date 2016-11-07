@@ -2,7 +2,7 @@
 # single deployment node, 3 backend servers backed by persistent
 # volumes, a configurable number of ephemeral application servers, and
 # a load balancing pool behind a floating IP.
-heat_template_version: 2015-04-30
+heat_template_version: 2016-04-08
 
 description: >
   Full Open edX deployment: 3 backend nodes, configurable
@@ -49,9 +49,13 @@ parameters:
     type: number
     description: Number of app servers
     default: 1
-  app_port:
+  app_http_port:
     type: number
-    description: Load balancer port for app servers
+    description: Load balancer HTTP port for app servers
+    default: 80
+  app_https_port:
+    type: number
+    description: Load balancer HTTPS port for app servers
     default: 443
   public_net_id:
     type: string
@@ -109,8 +113,7 @@ resources:
   # server_security_group: Neutron security group allowing inbound
   # access on selected ports
   #
-  # We allow inbound ICMP, SSH, and TCP on whatever was set as the
-  # app_port.
+  # We allow inbound ICMP, SSH, and TCP on the app http/s ports.
   server_security_group:
     type: OS::Neutron::SecurityGroup
     properties:
@@ -130,8 +133,13 @@ resources:
       - remote_ip_prefix: 0.0.0.0/0
         protocol: tcp
         direction: ingress
-        port_range_min: { get_param: app_port }
-        port_range_max: { get_param: app_port }
+        port_range_min: { get_param: app_http_port }
+        port_range_max: { get_param: app_http_port }
+      - remote_ip_prefix: 0.0.0.0/0
+        protocol: tcp
+        direction: ingress
+        port_range_min: { get_param: app_https_port }
+        port_range_max: { get_param: app_https_port }
 
   # management_net: private Neutron network
   management_net:
@@ -350,33 +358,65 @@ resources:
           flavor: { get_param: app_flavor }
           image: { get_param: app_image }
           key_name: { get_param: key_name }
-          pool_id: { get_resource: app_server_pool }
-          protocol_port: { get_param: app_port }
+          http_pool: { get_resource: app_server_http_pool }
+          http_port: { get_param: app_http_port }
+          https_pool: { get_resource: app_server_https_pool }
+          https_port: { get_param: app_https_port }
           metadata: { "metering.stack": { get_param: "OS::stack_id" } }
           network: { get_resource: management_net }
           security_group: { get_resource: server_security_group }
 
-  # app_server_monitor: Neutron LBaaS monitor
-  app_server_monitor:
-    type: OS::Neutron::HealthMonitor
+  # app_server_lb: Neutron LBaaS v2 load balancer
+  app_server_lb:
+    type: OS::Neutron::LBaaS::LoadBalancer
+    properties:
+      vip_subnet: { get_resource: management_net }
+
+  app_server_http_listener:
+    type: OS::Neutron::LBaaS::Listener
+    properties:
+      loadbalancer: app_server_lb
+      protocol: TCP
+      protocol_port: { get_param: app_http_port }
+
+  app_server_https_listener:
+    type: OS::Neutron::LBaaS::Listener
+    properties:
+      loadbalancer: app_server_lb
+      protocol: TCP
+      protocol_port: { get_param: app_https_port }
+
+  app_server_http_pool:
+    type: OS::Neutron::LBaaS::Pool
+    properties:
+      lb_algorythm: LEAST_CONNECTIONS
+      listener: app_server_http_listener
+      protocol: TCP
+
+  app_server_https_pool:
+    type: OS::Neutron::LBaaS::Pool
+    properties:
+      lb_algorythm: LEAST_CONNECTIONS
+      listener: app_server_https_listener
+      protocol: TCP
+
+  app_server_http_monitor:
+    type: OS::Neutron::LBaaS::HealthMonitor
     properties:
       type: TCP
       delay: 5
       max_retries: 5
+      pool: app_server_http_pool
       timeout: 5
 
-  # app_server_pool: Neutron LBaaS pool
-  #
-  # Defines a private virtual IP (VIP) front end on the app port.
-  app_server_pool:
-    type: OS::Neutron::Pool
+  app_server_https_monitor:
+    type: OS::Neutron::LBaaS::HealthMonitor
     properties:
-      lb_method: LEAST_CONNECTIONS
-      protocol: TCP
-      vip:
-        protocol_port: { get_param: app_port }
-      monitors: [ { get_resource: app_server_monitor } ]
-      subnet_id: { get_resource: management_sub_net }
+      type: TCP
+      delay: 5
+      max_retries: 5
+      pool: app_server_https_pool
+      timeout: 5
 
   # app_server_floating_ip: Neutron LBaaS floating IP address
   #
@@ -386,14 +426,7 @@ resources:
     type: OS::Neutron::FloatingIP
     properties:
       floating_network_id: { get_param: public_net_id }
-      port_id: { get_attr: [ app_server_pool, vip, port_id ] }
-
-  # app_server_lb: Neutron LBaaS load balancer
-  app_server_lb:
-    type: OS::Neutron::LoadBalancer
-    properties:
-      protocol_port: { get_param: app_port }
-      pool_id: { get_resource: app_server_pool }
+      port_id: { get_attr: [ app_server_lb, vip_port_id ] }
 
 outputs:
   deploy_ip:

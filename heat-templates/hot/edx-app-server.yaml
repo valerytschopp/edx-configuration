@@ -3,7 +3,7 @@
 # instance of the defined flavor, and plugs that instance into an
 # LBaaS pool. The Nova instance is ephemeral and uses no persistent
 # storage.
-heat_template_version: 2015-04-30
+heat_template_version: 2016-04-08
 
 description: >
   Open edX application server
@@ -22,12 +22,18 @@ parameters:
     type: string
     description: Flavor to use for app servers
     default: m1.large
-  pool_id:
+  http_pool:
     type: string
-    description: LBaaS pool to plug the app server into
-  protocol_port:
+    description: LBaaS HTTP pool
+  http_port:
     type: number
-    description: LBaaS service port number
+    description: Service HTTP port number
+  https_pool:
+    type: string
+    description: LBaaS HTTPS pool
+  https_port:
+    type: number
+    description: Service HTTPS port number
   metadata:
     type: json
     description: Metadata injected into the virtual machine
@@ -113,16 +119,23 @@ resources:
       networks: [ { network: { get_param: network } } ]
       security_groups: [ { get_param: security_group } ]
 
-  # member: a Neutron LBaaS pool member
+  # http(s)_member: Neutron LBaaS v2 pool membership
   #
-  # Retrieves the primary IP address from the previously created
-  # server, and plugs it into the load balancer pool.
-  member:
-    type: OS::Neutron::PoolMember
+  # Retrieves the primary IP address from the previously created server, and
+  # plugs it into the http and https load balancer pools.
+  http_member:
+    type: OS::Neutron::LBaaS::PoolMember
     properties:
-      pool_id: { get_param: pool_id }
       address: { get_attr: [ server, first_address ] }
-      protocol_port: { get_param: protocol_port }
+      pool: { get_param: http_pool }
+      protocol_port: { get_param: http_port }
+
+  https_member:
+    type: OS::Neutron::LBaaS::PoolMember
+    properties:
+      address: { get_attr: [ server, first_address ] }
+      pool: { get_param: https_pool }
+      protocol_port: { get_param: https_port }
 
 outputs:
   OS::stack_id:
@@ -130,6 +143,9 @@ outputs:
   server_ip:
     description: "Server's private IP address"
     value: { get_attr: [ server, first_address ] }
-  lb_member:
+  http_member:
     description: Load balancer member details
-    value: { get_attr: [ member, show ] }
+    value: { get_attr: [ http_member, show ] }
+  https_member:
+    description: Load balancer member details
+    value: { get_attr: [ https_member, show ] }

@@ -1,6 +1,6 @@
 # This template defines an Open edX analytics server.
-# 
-heat_template_version: 2015-04-30
+#
+heat_template_version: 2016-04-08
 
 description: >
   Open edX analytics server
