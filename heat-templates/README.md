@@ -133,14 +133,31 @@ If you want to deploy the hastexo XBlock together with Open edX to your single
 node, go back to your installed node and:
 
 1. Locate the following variables in
-   `/var/tmp/edx-configuration-secrets/host_vars/localhost` (which
-   you created above) and change them as described:
+   `/var/tmp/edx-configuration-secrets/host_vars/localhost` (which you created
+   above) and change them as described.  Set the `os_*` variables to the
+   OpenStack cloud of your choice.
 
     ```
     EDXAPP_EXTRA_REQUIREMENTS:
       - name: "git+https://github.com/hastexo/hastexo-xblock.git@master#egg=hastexo-xblock"
     EDXAPP_ADDL_INSTALLED_APPS:
       - 'hastexo'
+    EDXAPP_XBLOCK_SETTINGS:
+      hastexo:
+        providers:
+          default:
+            os_auth_url: ""
+            os_auth_token: ""
+            os_username: ""
+            os_password: ""
+            os_user_id: ""
+            os_user_domain_id: ""
+            os_user_domain_name: ""
+            os_project_id: ""
+            os_project_name: ""
+            os_project_domain_id: ""
+            os_project_domain_name: ""
+            os_region_name: ""
     ```
 
 2. Check out the `hastexo/integration/base` branch of edx-configuration, which
@@ -297,13 +314,30 @@ node cluster, go back to your deploy node and:
 
 1. Locate the following variables in
    `/var/tmp/edx-configuration-secrets/group_vars/all` (which you created
-   above) and change them as described:
+   above) and change them as described.  Set the `os_*` variables to the
+   OpenStack cloud of your choice.
 
     ```
     EDXAPP_EXTRA_REQUIREMENTS:
       - name: "git+https://github.com/hastexo/hastexo-xblock.git@master#egg=hastexo-xblock"
     EDXAPP_ADDL_INSTALLED_APPS:
       - 'hastexo'
+    EDXAPP_XBLOCK_SETTINGS:
+      hastexo:
+        providers:
+          default:
+            os_auth_url: ""
+            os_auth_token: ""
+            os_username: ""
+            os_password: ""
+            os_user_id: ""
+            os_user_domain_id: ""
+            os_user_domain_name: ""
+            os_project_id: ""
+            os_project_name: ""
+            os_project_domain_id: ""
+            os_project_domain_name: ""
+            os_region_name: ""
     ```
 
 2. Check out the `hastexo/integration/base` branch of edx-configuration, which

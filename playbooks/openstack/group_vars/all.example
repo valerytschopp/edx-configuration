@@ -273,18 +273,20 @@ EDXAPP_XBLOCK_SETTINGS:
       keepalive: 15000
       idle: 600000
       check: 5000
-    os_auth_url: "https://identity1.citycloud.com:5000/v3"
-    os_auth_token: ""
-    os_username: "hastexo-lab"
-    os_password: "eequ6pheishe0jia0eepoe9einaovoGh"
-    os_user_id: "7ecbe49571b54234ab9f48a23267cc24"
-    os_user_domain_id: "7cce9c47a7e54b7bb95f17423a45b418"
-    os_user_domain_name: ""
-    os_project_id: "5ed51981f4a8468292bf2c578806ebf7"
-    os_project_name: ""
-    os_project_domain_id: ""
-    os_project_domain_name: ""
-    os_region_name: "Kna1"
+    providers:
+      default:
+        os_auth_url: ""
+        os_auth_token: ""
+        os_username: ""
+        os_password: ""
+        os_user_id: ""
+        os_user_domain_id: ""
+        os_user_domain_name: ""
+        os_project_id: ""
+        os_project_name: ""
+        os_project_domain_id: ""
+        os_project_domain_name: ""
+        os_region_name: ""
 
 # Gateone
 gateone_user_dir: "{{COMMON_DATA_DIR }}/edxapp/terminal_users"
