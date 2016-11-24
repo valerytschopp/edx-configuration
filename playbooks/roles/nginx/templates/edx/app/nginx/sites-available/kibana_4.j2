@@ -1,0 +1,30 @@
+server {
+  server_name {{ KIBANA_SERVER_NAME }};
+
+  {% if NGINX_ENABLE_SSL %}
+  listen {{ KIBANA_NGINX_PORT }};
+  listen {{ KIBANA_SSL_NGINX_PORT }} ssl;
+
+  ssl_certificate /etc/ssl/certs/{{ NGINX_SSL_CERTIFICATE|basename }};
+  ssl_certificate_key /etc/ssl/private/{{ NGINX_SSL_KEY|basename }};
+  {% else %}
+  listen {{ KIBANA_NGINX_PORT }};
+  {% endif %}
+
+  {% if KIBANA_BASIC_AUTH|bool %}
+  auth_basic "Restricted Access";
+  auth_basic_user_file {{ KIBANA_BASIC_AUTH_FILE }};
+  {% endif %}
+    
+  access_log {{ nginx_log_dir }}/kibana.access.log;
+  error_log {{ nginx_log_dir }}/kibana.error.log error;
+
+  location / {
+      proxy_pass http://{{ KIBANA_HOST }}:{{ KIBANA_PORT }};
+      proxy_http_version 1.1;
+      proxy_set_header Upgrade $http_upgrade;
+      proxy_set_header Connection 'upgrade';
+      proxy_set_header Host $host;
+      proxy_cache_bypass $http_upgrade;
+  }
+}

@@ -1,0 +1,53 @@
+---
+- name: Install kibana repo key 
+  apt_key:
+    url: "{{ kibana_apt_key_url }}"
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: Add kibana repo
+  apt_repository:
+    repo: "{{ kibana_repo }}"
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: Install packages
+  apt:
+    pkg: "{{ item }}"
+    state: present 
+    update_cache: yes
+  with_items:
+    - python-passlib
+    - kibana
+  tags:
+    - install
+    - install:base
+
+- name: Drop the kibana config
+  template:
+    src: opt/kibana/config/kibana.yml.j2 
+    dest: /opt/kibana/config/kibana.yml
+    mode: 0664
+  notify: restart kibana
+  tags:
+    - install
+    - install:configuration
+
+- name: Start kibana
+  service: name=kibana state=started
+
+- name: Create htpasswd file
+  htpasswd:
+    path: "{{ KIBANA_BASIC_AUTH_FILE }}"
+    name: "{{ KIBANA_BASIC_AUTH_USER }}"
+    password: "{{ KIBANA_BASIC_AUTH_PASSWORD }}"
+    group: "{{ common_web_user }}"
+    mode: 0640
+  when: KIBANA_BASIC_AUTH|bool
+  tags:
+    - install
+    - install:configuration
