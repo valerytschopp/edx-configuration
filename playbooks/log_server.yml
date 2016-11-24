@@ -7,9 +7,9 @@
   roles:
     - common
     - oraclejdk
-    - elasticsearch
-    - logstash
-    - kibana
+    - elasticsearch_2
+    - logstash_2
+    - kibana_4
     - role: nginx
       nginx_sites:
-        - kibana
+      - kibana_4
