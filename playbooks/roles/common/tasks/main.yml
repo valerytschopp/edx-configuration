@@ -157,6 +157,7 @@
     mode: "{{ item.mode | default(0644) }}"
   register: config_templates
   with_items:
+    - { src: 'etc/rsyslog.conf.j2', dest: '/etc/rsyslog.conf' }
     - { src: 'edx_rsyslog.j2', dest: '/etc/rsyslog.d/99-edx.conf' }
     - { src: 'etc/logrotate.d/hourly/edx_logrotate.j2', dest: '/etc/logrotate.d/hourly/edx-services' }
     - { src: 'etc/cron.hourly/logrotate.j2', dest: '/etc/cron.hourly/logrotate', mode: '0555' }
