@@ -34,7 +34,6 @@
   become: True
   gather_facts: True
   roles:
-    - openstack
     - supervisor
     - role: nginx
       nginx_sites:
@@ -47,6 +46,7 @@
       - lms
     - { role: 'edxapp', celery_worker: True }
     - edxapp
+    - openstack
     - forum
     - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
     - { role: 'xqueue', update_users: True }
