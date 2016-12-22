@@ -14,6 +14,25 @@ xqueue_version: "master"
 NOTIFIER_SOURCE_REPO: "https://{{ COMMON_GIT_MIRROR }}/edx/notifier.git"
 NOTIFIER_VERSION: "master"
 
+# Mongo
+EDXAPP_MONGO_DB_NAME: 'edxapp'
+EDXAPP_MONGO_USER: 'edxapp'
+EDXAPP_MONGO_PASSWORD: 'password'
+FORUM_MONGO_DATABASE: "cs_comments_service"
+FORUM_MONGO_USER: "cs_comments_service"
+FORUM_MONGO_PASSWORD: "password"
+MONGO_ADMIN_USER: 'admin'
+MONGO_ADMIN_PASSWORD: 'password'
+MONGO_USERS:
+  - user: "{{ EDXAPP_MONGO_USER }}"
+    password: "{{ EDXAPP_MONGO_PASSWORD }}"
+    database: "{{ EDXAPP_MONGO_DB_NAME }}"
+    roles: readWrite
+  - user: "{{ FORUM_MONGO_USER }}"
+    password: "{{ FORUM_MONGO_PASSWORD }}"
+    database: "{{ FORUM_MONGO_DATABASE }}"
+    roles: readWrite
+
 # Common
 COMMON_ENVIRONMENT: 'default_env'
 COMMON_DEPLOYMENT: 'default_deployment'
