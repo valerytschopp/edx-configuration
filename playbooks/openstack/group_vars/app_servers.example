@@ -1,18 +1,32 @@
 ---
+# Mysql
 EDXAPP_MYSQL_HOST: "{{ keepalived_shared_ip }}"
 XQUEUE_MYSQL_HOST: "{{ keepalived_shared_ip }}"
 EDX_NOTES_API_MYSQL_HOST: "{{ keepalived_shared_ip }}"
 CREDENTIALS_MYSQL_HOST: "{{ keepalived_shared_ip }}"
 DISCOVERY_MYSQL: "{{ keepalived_shared_ip }}"
+
+# Mongo
 EDXAPP_MONGO_HOSTS: "{{ groups['backend_servers'] }}"
 FORUM_MONGO_HOSTS: "{{ groups['backend_servers'] }}"
-FORUM_ELASTICSEARCH_HOST: "{{ groups['backend_servers'][0] }}"
-EDX_NOTES_API_ELASTICSEARCH_URL: http://{{ groups['backend_servers'][0] }}:9200
-FORUM_SINATRA_ENV: "production"
-FORUM_RACK_ENV: "production"
+
+# RabbitMQ
 EDXAPP_RABBIT_HOSTNAME: "{{ keepalived_shared_ip }}"
 XQUEUE_RABBITMQ_HOSTNAME: "{{ keepalived_shared_ip }}"
+
+# Memcache
 EDXAPP_MEMCACHE:
   - "{{ groups['backend_servers'][0] }}:11211"
   - "{{ groups['backend_servers'][1] }}:11211"
   - "{{ groups['backend_servers'][2] }}:11211"
+
+# Elasticsearch
+EDXAPP_ELASTIC_SEARCH_CONFIG:
+    - host: "{{ keepalived_shared_ip }}"
+      port: 9200
+FORUM_ELASTICSEARCH_HOST: "{{ keepalived_shared_ip }}"
+EDX_NOTES_API_ELASTICSEARCH_URL: http://{{ keepalived_shared_ip }}:9200
+
+# Forum
+FORUM_SINATRA_ENV: "production"
+FORUM_RACK_ENV: "production"

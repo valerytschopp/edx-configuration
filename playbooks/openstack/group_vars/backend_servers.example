@@ -1,20 +1,33 @@
 ---
-MONGO_CLUSTERED: yes
-mongo_cluster_members: "{{ play_hosts }}"
-ELASTICSEARCH_CLUSTERED: yes
+# MySQL
 MARIADB_CLUSTERED: yes
 MARIADB_HAPROXY_HOSTS: ""
+
+# Mongo
+MONGO_CLUSTERED: yes
+mongo_cluster_members: "{{ groups['backend_servers'] }}"
+
+# RabbitMQ
+RABBITMQ_CLUSTERED_HOSTS:
+  - "rabbit@backend0"
+  - "rabbit@backend1"
+  - "rabbit@backend2"
+rabbitmq_ip: ""
+
+# Memcache
+MEMCACHE_LOCALHOST_ONLY: false
+
+# Elasticsearch
+ELASTICSEARCH_CLUSTER_MEMBERS: "{{ groups['backend_servers'] }}"
+
+# Backups
 KEEP_BACKUPS: 3
 OS_ENV:
   OS_AUTH_URL: https://example.com:5000/v2.0
   OS_TENANT_NAME: example.com
   OS_USERNAME: user@example.com
   OS_PASSWORD: password
+
+# Keepalived
 keepalived_auth_pass: "123456789"
 keepalived_shared_iface: "eth0"
-RABBITMQ_CLUSTERED_HOSTS:
-  - "rabbit@backend0"
-  - "rabbit@backend1"
-  - "rabbit@backend2"
-rabbitmq_ip: ""
-MEMCACHE_LOCALHOST_ONLY: false
