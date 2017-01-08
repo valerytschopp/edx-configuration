@@ -17,6 +17,8 @@ packages:
   - python-yaml
   - python-jinja2
   - libmysqlclient-dev
+  - libffi-dev
+  - libssl-dev
 runcmd:
   - /usr/bin/pip install --upgrade pip=="8.1.2"
   - /usr/local/bin/pip install --upgrade setuptools=="24.0.3"
