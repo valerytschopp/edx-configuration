@@ -20,7 +20,7 @@
     regexp: "^wsrep_cluster_address=gcomm://{{ groups['backend_servers']|join(',') }}$"
     line: "wsrep_cluster_address=gcomm://"
   run_once: true
-  when: ansible_hostname == hostvars[hostvars.keys()[0]].ansible_hostname and not mariadb_bootstrap.stat.exists
+  when: not mariadb_bootstrap.stat.exists
 
 - name: fetch debian.cnf file so start-stop will work properly
   fetch:
@@ -29,7 +29,7 @@
     fail_on_missing: yes
     flat: yes
   run_once: true
-  when: ansible_hostname == hostvars[hostvars.keys()[0]].ansible_hostname and not mariadb_bootstrap.stat.exists
+  when: not mariadb_bootstrap.stat.exists
   register: mariadb_new_debian_cnf
 
 - name: copy fetched file to other cluster members
