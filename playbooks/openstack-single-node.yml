@@ -30,4 +30,3 @@
     - { role: "xqueue", update_users: True }
     - certs
     - oauth_client_setup
-    - demo
