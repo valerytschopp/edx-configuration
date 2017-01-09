@@ -8,3 +8,13 @@
   tags:
     - install
     - install:memcache
+
+- name: add configuration file
+  template:
+    src: memcached.conf.j2
+    dest: /etc/memcached.conf
+  tags:
+    - install
+    - install:memcache
+  notify:
+    - restart memcache

@@ -1,0 +1,75 @@
+---
+
+- name: Install Elasticsearch repo key 
+  apt_key:
+    url: "{{ elasticsearch_apt_key_url }}"
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: Add Elasticsearch Repo
+  apt_repository:
+    repo: "{{ elasticsearch_repo }}"
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: install elasticsearch
+  apt:
+    pkg: elasticsearch
+    state: present 
+    install_recommends: yes
+    force: yes 
+    update_cache: yes
+  tags:
+    - install
+    - install:base
+  register: elasticsearch_reinstall
+
+- name: update elasticsearch defaults
+  template:
+    src: etc/default/elasticsearch.j2 
+    dest: /etc/default/elasticsearch
+  tags:
+    - install
+    - install:configuration
+
+- name: drop the elasticsearch config
+  template:
+    src: etc/elasticsearch/elasticsearch.yml.j2 
+    dest: /etc/elasticsearch/elasticsearch.yml
+    mode: 0744
+  tags:
+    - install
+    - install:configuration
+
+- name: drop the elasticsearch logging config
+  template:
+    src: etc/elasticsearch/logging.yml.j2 
+    dest: /etc/elasticsearch/logging.yml
+    mode: 0744
+  tags:
+    - install
+    - install:configuration
+
+- name: Ensure elasticsearch is enabled and started
+  service: 
+    name: elasticsearch
+    state: started 
+    enabled: yes
+  tags:
+    - manage
+    - manage:start
+
+- name: Restart elastic when there has been an upgrade
+  service: 
+    name: elasticsearch 
+    state: restarted 
+    enabled: yes
+  when: elasticsearch_reinstall.changed
+  tags:
+    - manage
+    - manage:restart
+    - install

@@ -1,0 +1,166 @@
+[
+  {
+    "_id": "Default",
+    "_type": "dashboard",
+    "_source": {
+      "title": "Default",
+      "hits": 0,
+      "description": "",
+      "panelsJSON": "[{\"id\":\"hastexblock\",\"type\":\"visualization\",\"panelIndex\":1,\"size_x\":6,\"size_y\":2,\"col\":1,\"row\":1},{\"id\":\"errors\",\"type\":\"visualization\",\"panelIndex\":2,\"size_x\":6,\"size_y\":2,\"col\":7,\"row\":1},{\"id\":\"hastexblock\",\"type\":\"search\",\"panelIndex\":3,\"size_x\":6,\"size_y\":4,\"col\":1,\"row\":3,\"columns\":[\"_source\"],\"sort\":[\"@timestamp\",\"desc\"]},{\"id\":\"errors\",\"type\":\"search\",\"panelIndex\":4,\"size_x\":6,\"size_y\":4,\"col\":7,\"row\":3,\"columns\":[\"_source\"],\"sort\":[\"@timestamp\",\"desc\"]}]",
+      "optionsJSON": "{\"darkTheme\":false}",
+      "uiStateJSON": "{\"P-1\":{\"vis\":{\"legendOpen\":false},\"spy\":{\"mode\":{\"name\":null,\"fill\":false}}}}",
+      "version": 1,
+      "timeRestore": true,
+      "timeTo": "now",
+      "timeFrom": "now-1h",
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"filter\":[{\"query\":{\"query_string\":{\"query\":\"*\",\"analyze_wildcard\":true}}}]}"
+      }
+    }
+  },
+  {
+    "_id": "errors",
+    "_type": "search",
+    "_source": {
+      "title": "errors",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "_source"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"logstash-*\",\"query\":{\"query_string\":{\"query\":\"message:(ERROR AND NOT (\\\"log.py:282\\\" OR \\\"job.py:416\\\" OR \\\"client.py:1678\\\" OR \\\"views.py:293\\\" OR \\\"consumer.py:427\\\"))\",\"analyze_wildcard\":true}},\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647}}"
+      }
+    }
+  },
+  {
+    "_id": "hastexblock-launch-tasks",
+    "_type": "search",
+    "_source": {
+      "title": "hastexblock launch tasks",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "_source"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"logstash-*\",\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647},\"query\":{\"query_string\":{\"query\":\"hastexo.py AND \\\"Firing async launch task\\\"\",\"analyze_wildcard\":true}}}"
+      }
+    }
+  },
+  {
+    "_id": "hastexblock-successful-launches",
+    "_type": "search",
+    "_source": {
+      "title": "hastexblock successful launches",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "_source"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"logstash-*\",\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647},\"query\":{\"query_string\":{\"query\":\"hastexo.py AND \\\"Successful launch\\\"\",\"analyze_wildcard\":true}}}"
+      }
+    }
+  },
+  {
+    "_id": "hastexblock-progress-checks",
+    "_type": "search",
+    "_source": {
+      "title": "hastexblock progress checks",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "_source"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"logstash-*\",\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647},\"query\":{\"query_string\":{\"query\":\"hastexo.py AND \\\"Executing tests\\\"\",\"analyze_wildcard\":true}}}"
+      }
+    }
+  },
+  {
+    "_id": "hastexblock",
+    "_type": "search",
+    "_source": {
+      "title": "hastexblock",
+      "description": "",
+      "hits": 0,
+      "columns": [
+        "_source"
+      ],
+      "sort": [
+        "@timestamp",
+        "desc"
+      ],
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"index\":\"logstash-*\",\"filter\":[],\"highlight\":{\"pre_tags\":[\"@kibana-highlighted-field@\"],\"post_tags\":[\"@/kibana-highlighted-field@\"],\"fields\":{\"*\":{}},\"require_field_match\":false,\"fragment_size\":2147483647},\"query\":{\"query_string\":{\"query\":\"hastexo.py\",\"analyze_wildcard\":true}}}"
+      }
+    }
+  },
+  {
+    "_id": "errors",
+    "_type": "visualization",
+    "_source": {
+      "title": "errors",
+      "visState": "{\"title\":\"New Visualization\",\"type\":\"histogram\",\"params\":{\"shareYAxis\":true,\"addTooltip\":true,\"addLegend\":true,\"scale\":\"linear\",\"mode\":\"stacked\",\"times\":[],\"addTimeMarker\":false,\"defaultYExtents\":false,\"setYExtents\":false,\"yAxis\":{}},\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"date_histogram\",\"schema\":\"segment\",\"params\":{\"field\":\"@timestamp\",\"interval\":\"auto\",\"customInterval\":\"2h\",\"min_doc_count\":1,\"extended_bounds\":{}}}],\"listeners\":{}}",
+      "uiStateJSON": "{\"vis\":{\"colors\":{\"Count\":\"#BF1B00\"}}}",
+      "description": "",
+      "savedSearchId": "errors",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"filter\":[]}"
+      }
+    }
+  },
+  {
+    "_id": "hastexblock-launch-tasks",
+    "_type": "visualization",
+    "_source": {
+      "title": "hastexblock launch tasks",
+      "visState": "{\"title\":\"New Visualization\",\"type\":\"histogram\",\"params\":{\"shareYAxis\":true,\"addTooltip\":true,\"addLegend\":true,\"scale\":\"linear\",\"mode\":\"stacked\",\"times\":[],\"addTimeMarker\":false,\"defaultYExtents\":false,\"setYExtents\":false,\"yAxis\":{}},\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"date_histogram\",\"schema\":\"segment\",\"params\":{\"field\":\"@timestamp\",\"interval\":\"auto\",\"customInterval\":\"2h\",\"min_doc_count\":1,\"extended_bounds\":{}}}],\"listeners\":{}}",
+      "uiStateJSON": "{}",
+      "description": "",
+      "savedSearchId": "hastexblock-launch-tasks",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"filter\":[]}"
+      }
+    }
+  },
+  {
+    "_id": "hastexblock",
+    "_type": "visualization",
+    "_source": {
+      "title": "hastexblock",
+      "visState": "{\"title\":\"hastexblock\",\"type\":\"histogram\",\"params\":{\"shareYAxis\":true,\"addTooltip\":true,\"addLegend\":true,\"scale\":\"linear\",\"mode\":\"stacked\",\"times\":[],\"addTimeMarker\":false,\"defaultYExtents\":false,\"setYExtents\":false,\"yAxis\":{}},\"aggs\":[{\"id\":\"1\",\"type\":\"count\",\"schema\":\"metric\",\"params\":{}},{\"id\":\"2\",\"type\":\"date_histogram\",\"schema\":\"segment\",\"params\":{\"field\":\"@timestamp\",\"interval\":\"auto\",\"customInterval\":\"2h\",\"min_doc_count\":1,\"extended_bounds\":{}}},{\"id\":\"3\",\"type\":\"filters\",\"schema\":\"group\",\"params\":{\"filters\":[{\"input\":{\"query\":{\"query_string\":{\"query\":\"\\\"Successful launch\\\"\",\"analyze_wildcard\":true}}},\"label\":\"Launches\"},{\"input\":{\"query\":{\"query_string\":{\"query\":\"\\\"Firing async launch\\\"\",\"analyze_wildcard\":true}}},\"label\":\"Tasks\"},{\"input\":{\"query\":{\"query_string\":{\"query\":\"\\\"Executing tests\\\"\",\"analyze_wildcard\":true}}},\"label\":\"Tests\"},{\"input\":{\"query\":{\"query_string\":{\"query\":\"ERROR\",\"analyze_wildcard\":true}}},\"label\":\"Error\"}]}}],\"listeners\":{}}",
+      "uiStateJSON": "{\"vis\":{\"colors\":{\"Count\":\"#64B0C8\",\"ERROR\":\"#E24D42\",\"Executing tests\":\"#D683CE\",\"Successful launch\":\"#7EB26D\",\"Launches\":\"#629E51\",\"Tasks\":\"#447EBC\",\"Tests\":\"#BA43A9\",\"Error\":\"#BF1B00\"}}}",
+      "description": "",
+      "savedSearchId": "hastexblock",
+      "version": 1,
+      "kibanaSavedObjectMeta": {
+        "searchSourceJSON": "{\"filter\":[]}"
+      }
+    }
+  }
+]

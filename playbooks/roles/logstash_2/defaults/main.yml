@@ -1,0 +1,6 @@
+---
+logstash_apt_key_url: "https://packages.elastic.co/GPG-KEY-elasticsearch"
+logstash_repo: "deb http://packages.elastic.co/logstash/2.2/debian stable main"
+
+LOGSTASH_SYSLOG_PORT: 10514
+LOGSTASH_ELASTICSEARCH_HOST: "localhost:9200"

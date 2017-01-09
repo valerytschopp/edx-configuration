@@ -271,4 +271,5 @@ location ~ ^{{ EDXAPP_MEDIA_URL }}/(?P<file>.*) {
   {% include "robots.j2" %}
   {% include "static-files.j2" %}
 
+  include {{ nginx_include_dir }}/lms/*;
 }

@@ -1,0 +1,407 @@
+# This template defines a full Open edX environment. It creates a
+# single deployment node, 3 backend servers backed by persistent
+# volumes, a configurable number of ephemeral application servers, and
+# a load balancing pool behind a floating IP.
+heat_template_version: 2015-04-30
+
+description: >
+  Full Open edX deployment: 3 backend nodes, configurable
+  number of application servers behind a load balancer.
+
+parameters:
+  image:
+    type: string
+    description: >
+      Image ID or name.
+      Should be a distribution platform supported for Open edX.
+    default: ubuntu-14.04-server-cloudimg
+  app_image:
+    type: string
+    description: >
+      Image ID or name.
+      Should be a distribution platform supported for Open edX.
+    default: ubuntu-14.04-server-cloudimg
+  app_master_image:
+    type: string
+    description: >
+      Image ID or name.
+      Should be a distribution platform supported for Open edX.
+    default: ubuntu-14.04-server-cloudimg
+  deploy_flavor:
+    type: string
+    description: Flavor to use for deploy node
+    default: m1.small
+  backend_flavor:
+    type: string
+    description: Flavor to use for backend servers
+    default: m1.medium
+  enable_app_master:
+    type: number
+    description: Control app master server creation
+    constraints:
+      - allowed_values: [ 0, 1 ]
+    default: 0
+  app_flavor:
+    type: string
+    description: Flavor to use for app servers
+    default: m1.large
+  app_count:
+    type: number
+    description: Number of app servers
+    default: 1
+  app_port:
+    type: number
+    description: Load balancer port for app servers
+    default: 443
+  public_net_id:
+    type: string
+    description: Public network ID
+  key_name:
+    type: string
+    description: >
+      SSH key name for authentication, to be injected into the servers
+      for the default user
+  mysql_size:
+    type: string
+    description: Size of MariaDB volumes
+    default: 10
+  mongodb_size:
+    type: string
+    description: Size of MongoDB volumes
+    default: 10
+  galera_vip:
+    type: string
+    description: Load-balanced virtual IP for MySQL/Galera
+    default: 192.168.122.110
+  timeout:
+    type: number
+    description: Stack creation timeout (seconds)
+    default: 900
+
+resources:
+  # deploy_done: Wait condition to signal that the deploy node has completed its
+  # installation.
+  deploy_done:
+    type: OS::Heat::WaitCondition
+    properties:
+      handle: {get_resource: deploy_done_handle}
+      count: 1
+      timeout: {get_param: timeout}
+
+  deploy_done_handle:
+    type: OS::Heat::WaitConditionHandle
+
+  # backend_done: Wait condition to signal that a backend node has
+  # completed its installation.
+  #
+  # We always run on 3 backend nodes, hence, we wait for this signal
+  # to be received 3 times.
+  backend_done:
+    type: OS::Heat::WaitCondition
+    properties:
+      handle: {get_resource: backend_done_handle}
+      count: 3
+      timeout: {get_param: timeout}
+
+  backend_done_handle:
+    type: OS::Heat::WaitConditionHandle
+
+  # server_security_group: Neutron security group allowing inbound
+  # access on selected ports
+  #
+  # We allow inbound ICMP, SSH, and TCP on whatever was set as the
+  # app_port.
+  server_security_group:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      description: Neutron security group rules
+      name: server_security_group
+      rules:
+      - remote_mode: 'remote_group_id'
+        remote_group_id:
+        direction: ingress
+      - remote_ip_prefix: 0.0.0.0/0
+        protocol: tcp
+        direction: ingress
+        port_range_min: 22
+        port_range_max: 22
+      - remote_ip_prefix: 0.0.0.0/0
+        protocol: icmp
+      - remote_ip_prefix: 0.0.0.0/0
+        protocol: tcp
+        direction: ingress
+        port_range_min: { get_param: app_port }
+        port_range_max: { get_param: app_port }
+
+  # management_net: private Neutron network
+  management_net:
+    type: OS::Neutron::Net
+    properties:
+      name: management-net
+
+  # management_sub_net: private Neutron subnet
+  #
+  # We assign dynamic private (fixed) IPv4 addresses upward of
+  # 192.168.122.200. Any statically configured addresses in this
+  # subnet must use IP addresses below .200.
+  management_sub_net:
+    type: OS::Neutron::Subnet
+    properties:
+      name: management-sub-net
+      network_id: { get_resource: management_net }
+      cidr: 192.168.122.0/24
+      gateway_ip: 192.168.122.1
+      enable_dhcp: true
+      allocation_pools: [ { "start": "192.168.122.200", "end": "192.168.122.254" } ]
+
+  # router: private router
+  #
+  # Connects our private subnet to the floating IP network.
+  router:
+    type: OS::Neutron::Router
+
+  # router_gateway
+  #
+  # Sets the public network as the router's gateway.
+  router_gateway:
+    type: OS::Neutron::RouterGateway
+    properties:
+      router_id: { get_resource: router }
+      network_id: { get_param: public_net_id }
+
+  # router_interface
+  #
+  # Plugs the management subnet into the router.
+  router_interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router }
+      subnet_id: { get_resource: management_sub_net }
+
+  # common_config_part: cloud-init configuration common to all nodes
+  common_config_part:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config: { get_file: ../cloud-config/common.yaml }
+
+  hosts_config_part:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config: { get_file: ../cloud-config/hosts.yaml }
+
+  deploy_config_part:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      config: { get_file: ../cloud-config/deploy.yaml }
+
+  deploy_done_config_part:
+    type: "OS::Heat::CloudConfig"
+    properties:
+      cloud_config:
+        merge_how: 'dict(recurse_array,no_replace)+list(append)'
+        runcmd:
+          - { get_attr: ['deploy_done_handle', 'curl_cli'] }
+
+  # deploy_cloud_config: cloud-init configuration for deploy node
+  #
+  # Installs several packages needed for bootstrapping Open edX.
+  # At the end of the cloud-init sequence, invokes the wait condition
+  # callback to signal to the calling stack that server creation is
+  # complete.
+  deploy_cloud_config:
+    type: OS::Heat::MultipartMime
+    properties:
+      parts:
+        - config: {get_resource: common_config_part}
+        - config: {get_resource: hosts_config_part}
+        - config: {get_resource: deploy_config_part}
+        - config: {get_resource: deploy_done_config_part}
+
+  # deploy: the deploy node instance
+  #
+  # Creates a new Nova VM with the appropriate flavor and
+  # image. Injects the configured SSH key for the default user,
+  # applies the cloud-init configuration, and plugs the VM into the
+  # correct network using the correct security group. Also, provides
+  # metadata about backend and app servers to be parsed by the Ansible
+  # dynamic inventory script (inventory.py).
+  deploy:
+    type: OS::Nova::Server
+    properties:
+      name: deploy
+      image: { get_param: image }
+      flavor: { get_param: deploy_flavor }
+      key_name: { get_param: key_name }
+      user_data: { get_resource: deploy_cloud_config }
+      user_data_format: RAW
+      networks:
+        - port: { get_resource: deploy_management_port }
+      metadata:
+        backend_servers:
+          - { get_attr: [ backend0, server_ip ] }
+          - { get_attr: [ backend1, server_ip ] }
+          - { get_attr: [ backend2, server_ip ] }
+        app_servers: { get_attr: [ app_servers, server_ip ] }
+        app_master: { get_attr: [ app_master, server_ip ] }
+
+  # deploy_management_port: the deploy node's network port in the
+  # management network
+  #
+  # Applies the correct security group, and sets a hard-coded fixed
+  # IP address.
+  deploy_management_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_resource: management_net }
+      security_groups:
+        - { get_resource: server_security_group }
+      fixed_ips:
+        - ip_address: 192.168.122.100
+
+  # deploy_floating_ip: floating IP address for the deploy node
+  #
+  # Makes the deploy node accessible via a floating IP address.
+  deploy_floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network_id: { get_param: public_net_id }
+      port_id: { get_resource: deploy_management_port }
+
+  # backend_servers: creates a backend cluster of 3 nodes
+  #
+  # Backend servers are named backend0, backend1, backend2.
+  backend0:
+    type: edx-backend-server.yaml
+    properties:
+      name: backend0
+      ip: 192.168.122.111
+      flavor: { get_param: backend_flavor }
+      image: { get_param: image }
+      key_name: { get_param: key_name }
+      metadata: { "metering.stack": { get_param: "OS::stack_id" } }
+      network: { get_resource: management_net }
+      security_group: { get_resource: server_security_group }
+      mysql_size: { get_param: mysql_size }
+      mongodb_size: { get_param: mongodb_size }
+      galera_vip: { get_param: galera_vip }
+      wait_condition_callback: { get_attr: ['backend_done_handle', 'curl_cli'] }
+
+  backend1:
+    type: edx-backend-server.yaml
+    properties:
+      name: backend1
+      ip: 192.168.122.112
+      flavor: { get_param: backend_flavor }
+      image: { get_param: image }
+      key_name: { get_param: key_name }
+      metadata: { "metering.stack": { get_param: "OS::stack_id" } }
+      network: { get_resource: management_net }
+      security_group: { get_resource: server_security_group }
+      mysql_size: { get_param: mysql_size }
+      mongodb_size: { get_param: mongodb_size }
+      galera_vip: { get_param: galera_vip }
+      wait_condition_callback: { get_attr: ['backend_done_handle', 'curl_cli'] }
+
+  backend2:
+    type: edx-backend-server.yaml
+    properties:
+      name: backend2
+      ip: 192.168.122.113
+      flavor: { get_param: backend_flavor }
+      image: { get_param: image }
+      key_name: { get_param: key_name }
+      metadata: { "metering.stack": { get_param: "OS::stack_id" } }
+      network: { get_resource: management_net }
+      security_group: { get_resource: server_security_group }
+      mysql_size: { get_param: mysql_size }
+      mongodb_size: { get_param: mongodb_size }
+      galera_vip: { get_param: galera_vip }
+      wait_condition_callback: { get_attr: ['backend_done_handle', 'curl_cli'] }
+
+  # app_master: conditionally create an application master server
+  app_master:
+    type: OS::Heat::ResourceGroup
+    depends_on: management_sub_net
+    properties:
+      count: { get_param: enable_app_master }
+      resource_def:
+        type: edx-app-master.yaml
+        properties:
+          name: app-master
+          flavor: { get_param: app_flavor }
+          image: { get_param: app_master_image }
+          key_name: { get_param: key_name }
+          network: { get_resource: management_net }
+          security_group: { get_resource: server_security_group }
+
+  # app_servers: creates an application server cluster of a
+  # configurable size
+  #
+  # App servers are named app0 ... appN, where N == app_count - 1.
+  app_servers:
+    type: OS::Heat::ResourceGroup
+    depends_on: management_sub_net
+    properties:
+      count: { get_param: app_count }
+      resource_def:
+        type: edx-app-server.yaml
+        properties:
+          name: app%index%
+          flavor: { get_param: app_flavor }
+          image: { get_param: app_image }
+          key_name: { get_param: key_name }
+          pool_id: { get_resource: app_server_pool }
+          protocol_port: { get_param: app_port }
+          metadata: { "metering.stack": { get_param: "OS::stack_id" } }
+          network: { get_resource: management_net }
+          security_group: { get_resource: server_security_group }
+
+  # app_server_monitor: Neutron LBaaS monitor
+  app_server_monitor:
+    type: OS::Neutron::HealthMonitor
+    properties:
+      type: TCP
+      delay: 5
+      max_retries: 5
+      timeout: 5
+
+  # app_server_pool: Neutron LBaaS pool
+  #
+  # Defines a private virtual IP (VIP) front end on the app port.
+  app_server_pool:
+    type: OS::Neutron::Pool
+    properties:
+      lb_method: LEAST_CONNECTIONS
+      protocol: TCP
+      vip:
+        protocol_port: { get_param: app_port }
+      monitors: [ { get_resource: app_server_monitor } ]
+      subnet_id: { get_resource: management_sub_net }
+
+  # app_server_floating_ip: Neutron LBaaS floating IP address
+  #
+  # Defines a floating IP address linked to the load balancer's
+  # private virtual IP (VIP).
+  app_server_floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network_id: { get_param: public_net_id }
+      port_id: { get_attr: [ app_server_pool, vip, port_id ] }
+
+  # app_server_lb: Neutron LBaaS load balancer
+  app_server_lb:
+    type: OS::Neutron::LoadBalancer
+    properties:
+      protocol_port: { get_param: app_port }
+      pool_id: { get_resource: app_server_pool }
+
+outputs:
+  deploy_ip:
+    description: IP address of the deploy node.
+    value: { get_attr: [ deploy_floating_ip, floating_ip_address ] }
+  app_ip:
+    description: IP address of the app_server group.
+    value: { get_attr: [ app_server_floating_ip, floating_ip_address ] }
+  app_master_id:
+    description: ID of the app master server
+    value: { get_attr: [ app_master, refs, 0 ] }

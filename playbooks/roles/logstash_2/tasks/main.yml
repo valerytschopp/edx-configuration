@@ -1,0 +1,51 @@
+---
+- name: Install logstash repo key 
+  apt_key:
+    url: "{{ logstash_apt_key_url }}"
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: Add logstash repo
+  apt_repository:
+    repo: "{{ logstash_repo }}"
+    state: present
+  tags:
+    - install
+    - install:base
+
+- name: Install logstash
+  apt:
+    pkg: logstash
+    state: present 
+    install_recommends: yes
+    force: yes 
+    update_cache: yes
+  tags:
+    - install
+    - install:base
+
+- name: drop the logstash config
+  template:
+    src: etc/logstash/conf.d/logstash.conf.j2 
+    dest: /etc/logstash/conf.d/logstash.conf
+    mode: 0644
+  notify: restart logstash
+  tags:
+    - install
+    - install:configuration
+
+- name: Copy index template
+  copy:
+    src: template_logstash.json
+    dest: /tmp/template_logstash.json
+  tags:
+    - install
+    - install:configuration
+
+- name: Put index template
+  shell: /usr/bin/curl -XPUT 'http://localhost:9200/_template/logstash' -d@/tmp/template_logstash.json
+  tags:
+    - install
+    - install:configuration

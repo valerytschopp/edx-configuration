@@ -1,0 +1,61 @@
+---
+# Example multi-node OpenStack deployment.
+
+- name: Configure keepalived
+  hosts: backend_servers
+  become: True
+  gather_facts: True
+  roles:
+    - keepalived
+
+- name: Configure backend servers
+  hosts: backend_servers
+  become: True
+  gather_facts: True
+  roles:
+    - common
+    - mongo
+    - oraclejdk
+    - elasticsearch
+    - { role: 'mariadb', MARIADB_CREATE_DBS: 'yes' }
+    - memcache
+
+# RabbitMQ needs to be built serially
+- name: Configure RabbitMQ
+  hosts: backend_servers
+  become: True
+  gather_facts: True
+  serial: 1
+  roles:
+    - rabbitmq
+
+- name: Configure app servers
+  hosts: app_servers:app_master
+  become: True
+  gather_facts: True
+  roles:
+    - supervisor
+    - role: nginx
+      nginx_sites:
+      - certs
+      - cms
+      - lms
+      - forum
+      - xqueue
+      nginx_default_sites:
+      - lms
+    - { role: 'edxapp', celery_worker: True }
+    - edxapp
+    - openstack
+    - forum
+    - { role: notifier, NOTIFIER_DIGEST_TASK_INTERVAL: "5" }
+    - { role: 'xqueue', update_users: True }
+    - certs
+    - oauth_client_setup
+
+- name: Stop all services on app master
+  hosts: app_master
+  become: True
+  gather_facts: True
+  roles:
+    - stop_all_edx_services

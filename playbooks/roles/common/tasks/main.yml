@@ -157,10 +157,23 @@
     mode: "{{ item.mode | default(0644) }}"
   register: config_templates
   with_items:
+    - { src: 'etc/rsyslog.conf.j2', dest: '/etc/rsyslog.conf' }
     - { src: 'edx_rsyslog.j2', dest: '/etc/rsyslog.d/99-edx.conf' }
     - { src: 'etc/logrotate.d/hourly/edx_logrotate.j2', dest: '/etc/logrotate.d/hourly/edx-services' }
     - { src: 'etc/cron.hourly/logrotate.j2', dest: '/etc/cron.hourly/logrotate', mode: '0555' }
     - { src: 'etc/logrotate.d/hourly/edx_logrotate_tracking_log.j2', dest: '/etc/logrotate.d/hourly/tracking.log' }
+
+- name: Copy remote rsyslog template
+  template:
+    dest: "{{ item.dest }}"
+    src: "{{ item.src }}"
+    owner: root
+    group: root
+    mode: "{{ item.mode | default(0644) }}"
+  register: remote_rsyslog
+  with_items:
+    - { src: 'remote_rsyslog.j2', dest: '/etc/rsyslog.d/50-remote.conf' }
+  when: COMMON_LOG_SERVER|length > 0
 
   # TODO: restarts no matter which template has changed, need to examine
   # the results
@@ -169,7 +182,7 @@
     name: rsyslog 
     state: restarted
   become: True
-  when: config_templates.changed
+  when: config_templates.changed or remote_rsyslog.changed
 
 - name: Add ntp alert script
   template:

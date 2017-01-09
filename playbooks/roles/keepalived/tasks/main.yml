@@ -1,0 +1,18 @@
+---
+- name: add keepalived PPA
+  apt_repository: repo=ppa:keepalived/stable
+
+- name: Install keepalived
+  apt: name=keepalived state=latest
+  notify: restart keepalived
+
+- name: Install check script
+  copy: >
+    src=chk_mysql_port.sh
+    dest=/etc/keepalived/chk_mysql_port.sh
+    mode=0775
+  notify: restart keepalived
+
+- name: Configure keepalived
+  template: src=keepalived.conf.j2 dest=/etc/keepalived/keepalived.conf
+  notify: restart keepalived

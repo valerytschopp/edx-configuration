@@ -1,0 +1,15 @@
+---
+# Example analytics OpenStack deployment.
+
+- name: Deploy analytics services
+  hosts: analytics_servers
+  become: True
+  gather_facts: True
+  roles:
+    - openstack
+    - analytics_api
+    - analytics_pipeline
+    - role: nginx
+      nginx_sites:
+        - insights
+    - insights
