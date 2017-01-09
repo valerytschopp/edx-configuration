@@ -4,10 +4,10 @@
     src: "{{ item[0] }}.{{ item[1] }}.json.j2"
     dest: "{{ edxapp_app_dir }}/{{ item[0] }}.{{ item[1] }}.json"
     owner: "{{ edxapp_user }}"
-    group: "{{ common_web_group }}"
+    group: "{{ edxapp_user }}"
     mode: 0640
   become: true
-  with_nested:
+  with_nested: 
     - "{{ service_variants_enabled }}"
     - [ 'env', 'auth' ]
   tags:
@@ -21,7 +21,7 @@
     src: "{{ item[0] }}.{{ item[1] }}.yaml.j2"
     dest: "{{ EDXAPP_CFG_DIR }}/{{ item[0] }}.{{ item[1] }}.yaml"
     owner: "{{ edxapp_user }}"
-    group: "{{ common_web_group }}"
+    group: "{{ edxapp_user }}"
     mode: 0640
   become: true
   with_nested:
@@ -68,7 +68,8 @@
     src: "{{ item }}_gunicorn.py.j2"
     dest: "{{ edxapp_app_dir }}/{{ item }}_gunicorn.py"
     mode: 0644
-  become_user: "{{ edxapp_user }}"
+    owner: "{{ edxapp_user }}"
+    group: "{{ edxapp_user }}"
   with_items: "{{ service_variants_enabled }}"
   tags:
     - install
