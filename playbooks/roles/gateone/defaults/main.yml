@@ -2,8 +2,14 @@
 edxapp_user: edxapp
 edxapp_data_dir: "{{ COMMON_DATA_DIR }}/edxapp"
 edxapp_app_dir: "{{ COMMON_APP_DIR }}/edxapp"
+gateone_repo: https://github.com/liftoff/GateOne.git
+gateone_version: 8e16ee7
 gateone_url_prefix: "/terminal"
+gateone_app_dir: "{{ COMMON_APP_DIR }}/gateone"
+gateone_code_dir: "{{ gateone_app_dir }}/gateone"
+gateone_venv_dir: "{{ gateone_app_dir }}/venvs/gateone"
 gateone_user_dir: "{{ edxapp_data_dir }}/terminal_users"
+gateone_working_dir: "/var/lib/gateone"
 gateone_command: "{{ edxapp_app_dir }}/venvs/edxapp/bin/hastexo_connect.py"
 gateone_port: 28010
 gateone_uid: "{{ common_web_user }}"

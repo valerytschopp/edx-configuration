@@ -1,17 +1,34 @@
 ---
-- name: add PPAs
-  apt_repository:
-    repo="{{ item }}"
+- name: create gateone dirs
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ gateone_uid }}"
+    group: "{{ gateone_gid }}"
   with_items:
-    - "ppa:hastexo/python"
+    - "{{ gateone_app_dir }}"
+    - "{{ gateone_working_dir }}"
 
-- name: upgrade and install packages
-  apt: >-
-    name="{{ item }}"
-    state=latest
-    update_cache=yes
-  with_items:
-    - gateone
+- name: checkout gateone repo into {{ gateone_code_dir }}
+  git:
+    dest: "{{ gateone_code_dir }}"
+    repo: "{{ gateone_repo }}"
+    version: "{{ gateone_version }}"
+    accept_hostkey: yes
+  become_user: "{{ gateone_uid }}"
+
+- name: create gateone virtualenv
+  command: "virtualenv {{ gateone_venv_dir }}"
+  args:
+    chdir: "{{ gateone_app_dir }}"
+    creates: "{{ gateone_venv_dir }}/bin/pip"
+  become_user: "{{ gateone_uid }}"
+
+# Install gateone as root so setup.py will create the proper init scripts
+- name: install gateone into virtualenv
+  command: "{{ gateone_venv_dir }}/bin/python setup.py install"
+  args:
+    chdir: "{{ gateone_code_dir }}"
 
 - name: gateone configuration directory
   file: >
